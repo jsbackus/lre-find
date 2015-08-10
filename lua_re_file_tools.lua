@@ -31,15 +31,22 @@ local argparse = require "argparse";
 -- Figure out how we were invoked
 local _, _, run_as = string.find(arg[0], "([^/]+)$");
 
-local desc = { recp = "Copy with Lua pattern matching",
-	       remv = "Move with Lua pattern matching",
-	       reln = "Create links with Lua pattern matching",
-};
+-- Create a table to mode-specific settings.
+-- Override __index to create a default mode.
+local mode = {}
+mode.recp = {desc = "Copy with Lua pattern matching"};
+mode.remv = {desc = "Move with Lua pattern matching"};
+mode.reln = {desc = "Create links with Lua pattern matching"};
+mode_mt = {}
+mode_mt.__index = function(table,key)
+   return { desc = "Tool to move/copy/link files with Lua pattern matching" }
+end
+setmetatable(mode, mode_mt)
 
 -- Define command-line argument parser
 local parser = argparse()
    :name(run_as)
-   :description(desc[run_as])
+   :description(mode[run_as]["desc"])
    :add_help "-h"
    :epilog(run_as..copyright)
 
@@ -73,8 +80,23 @@ parser:argument("DEST")
 
 local args = parser:parse(arg);
 
+local function handle_dir(dir_name)
+   for dir_obj in lfs.dir(dir_name) do
+      pathname = dir_name.."/"..dir_obj;
+      attrs = lfs.attributes(pathname);
+      print("'"..pathname.."' is a "..attrs.mode)
+
+      if (args.r and attrs.mode == "directory" and
+	  dir_obj ~= '.' and dir_obj ~= '..' )then
+	 
+	 handle_dir(pathname)
+      end
+   end
+end
+
 -- debug
 print("[Begin Debug]")
 for k,v in pairs(args) do print("\t"..k.." = '"..tostring(v).."'") end
 print("[End Debug]")
 
+handle_dir('.')
