@@ -94,6 +94,19 @@ local function handle_dir(dir_name)
    end
 end
 
+local function copy_file(src, dest)
+   local BUFSIZE = 2^20 -- 1MB at a time
+   local fin = assert(io.open(src, "rb"))
+   local fout = assert(io.open(dest, "wb"))
+   while true do
+      local bytes = fin:read(block)
+      if not bytes then break end
+      fout:write(bytes)
+   end
+   fin:close()
+   fout:close()
+end
+
 -- debug
 print("[Begin Debug]")
 for k,v in pairs(args) do print("\t"..k.." = '"..tostring(v).."'") end
