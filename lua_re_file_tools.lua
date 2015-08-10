@@ -87,7 +87,7 @@ local function handle_dir(dir_name)
       print("'"..pathname.."' is a "..attrs.mode)
 
       if (args.r and attrs.mode == "directory" and
-	  dir_obj ~= '.' and dir_obj ~= '..' )then
+	  dir_obj ~= '.' and dir_obj ~= '..' ) then
 	 
 	 handle_dir(pathname)
       end
