@@ -34,19 +34,22 @@ local _, _, run_as = string.find(arg[0], "([^/]+)$");
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local mode = {}
-mode.recp = {desc = "Copy with Lua pattern matching"};
-mode.remv = {desc = "Move with Lua pattern matching"};
-mode.reln = {desc = "Create links with Lua pattern matching"};
+mode.recp = {desc = "Copy with Lua pattern matching", copy = true};
+mode.remv = {desc = "Move with Lua pattern matching", move = true};
+mode.reln = {desc = "Create links with Lua pattern matching", link = true};
+mode.reexec = {desc = "Find and Execute with Lua pattern matching", exec = true};
 mode_mt = {}
 mode_mt.__index = function(table,key)
    return { desc = "Tool to move/copy/link files with Lua pattern matching" }
 end
 setmetatable(mode, mode_mt)
 
+local cur_mode = mode[run_as]
+
 -- Define command-line argument parser
 local parser = argparse()
    :name(run_as)
-   :description(mode[run_as]["desc"])
+   :description(cur_mode["desc"])
    :add_help "-h"
    :epilog(run_as..copyright)
 
@@ -55,12 +58,18 @@ parser:flag("-r")
    :description("Recursively process directories")
 
 parser:flag("-d")
+   :description("Only manipulate directories")
+
+parser:flag("-f")
+   :description("Only manipulate files (still crawls directories if -r used)")
+
+parser:flag("--dry-run")
    :description("Dry run (don't actually do anything). Implies -v.")
 
 parser:flag("-v")
    :description("Displays actions as they happen.")
 
-if run_as == "reln" then
+if cur_mode[link] then
    parser:flag("-s")
       :description("Create symbolic link (defaults to hard link)")
 end
@@ -80,17 +89,34 @@ parser:argument("DEST")
 
 local args = parser:parse(arg);
 
-local function handle_dir(dir_name)
-   for dir_obj in lfs.dir(dir_name) do
-      pathname = dir_name.."/"..dir_obj;
-      attrs = lfs.attributes(pathname);
-      print("'"..pathname.."' is a "..attrs.mode)
+local function handle_dir(dir_names)
+   local idx = 1;
+   while( idx <= #dir_names ) do
+      local dir_name = dir_names[idx];
+      for dir_obj in lfs.dir(dir_name) do
+         pathname = dir_name.."/"..dir_obj;
+         attrs = lfs.attributes(pathname);
+--print("'"..pathname.."' is a "..attrs.mode);
 
-      if (args.r and attrs.mode == "directory" and
-	  dir_obj ~= '.' and dir_obj ~= '..' ) then
-	 
-	 handle_dir(pathname)
+	 if( attrs.mode == "directory" and
+	     dir_obj ~= '.' and dir_obj ~= '..' ) then
+	    
+	    -- Append to end of list if recursive mode enabled.
+	    if( args.r ) then
+	       dir_names[ #dir_names + 1 ] = pathname
+	    end
+	    if( args.f == nil ) then
+	       -- todo
+	       print("Handling directory '"..pathname.."'")
+	    end
+	 elseif( attrs.mode == "file" ) then
+	    if( args.d == nil ) then
+	       -- todo
+	       print("Handling file '"..pathname.."'")
+	    end
+	 end
       end
+      idx = idx + 1
    end
 end
 
@@ -112,4 +138,4 @@ print("[Begin Debug]")
 for k,v in pairs(args) do print("\t"..k.." = '"..tostring(v).."'") end
 print("[End Debug]")
 
-handle_dir('.')
+handle_dir({'.'})
