@@ -69,6 +69,9 @@ parser:flag("--dry-run")
 parser:flag("-v")
    :description("Displays actions as they happen.")
 
+parser:flag("-l")
+   :description("Interpret DEST as Lua code.")
+
 if cur_mode[link] then
    parser:flag("-s")
       :description("Create symbolic link (defaults to hard link)")
@@ -95,6 +98,7 @@ local function handle_dir(dir_names)
       local dir_name = dir_names[idx];
       for dir_obj in lfs.dir(dir_name) do
          pathname = dir_name.."/"..dir_obj;
+
          attrs = lfs.attributes(pathname);
 --print("'"..pathname.."' is a "..attrs.mode);
 
@@ -138,4 +142,9 @@ print("[Begin Debug]")
 for k,v in pairs(args) do print("\t"..k.." = '"..tostring(v).."'") end
 print("[End Debug]")
 
+-- If -l is specified, reinterpret DEST as Lua code.
+if args.l then
+   args.DEST = load(args.DEST)
+end
+   
 handle_dir({'.'})
