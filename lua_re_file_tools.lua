@@ -99,6 +99,8 @@ local function handle_dir(dir_names)
       for dir_obj in lfs.dir(dir_name) do
          pathname = dir_name.."/"..dir_obj;
 
+	 newname = string.gsub(pathname, args.SRC, args.DEST)
+	 
          attrs = lfs.attributes(pathname);
 --print("'"..pathname.."' is a "..attrs.mode);
 
