@@ -31,12 +31,59 @@ local argparse = require "argparse";
 -- Figure out how we were invoked
 local _, _, run_as = string.find(arg[0], "([^/]+)$");
 
+-- Define helper functions
+local function link_file(src, dest, args)
+   if( args.v ) then
+      local cmd = "ln"
+      if( args.s ) then
+	 cmd = cmd.." -s"
+      end
+      print(cmd.." '"..src.."' '"..dest.."'")
+   end
+   if( args.dry_run ) then
+      return
+   end
+
+   lfs.link( src, dest, args.s )
+end
+
+local function move_file(src, dest, args)
+   if( args.v ) then
+      print("mv '"..src.."' '"..dest.."'")
+   end
+   if( args.dry_run ) then
+      return
+   end
+   os.rename( src, dest )
+end
+
+local function copy_file(src, dest, args)
+
+   if( args.v ) then
+      print("cp '"..src.."' '"..dest.."'")
+   end
+   if( args.dry_run ) then
+      return
+   end
+   
+   local BUFSIZE = 2^20 -- 1MB at a time
+   local fin = assert(io.open(src, "rb"))
+   local fout = assert(io.open(dest, "wb"))
+   while true do
+      local bytes = fin:read(block)
+      if not bytes then break end
+      fout:write(bytes)
+   end
+   fin:close()
+   fout:close()
+end
+
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local mode = {}
-mode.recp = {desc = "Copy with Lua pattern matching", copy = true};
-mode.remv = {desc = "Move with Lua pattern matching", move = true};
-mode.reln = {desc = "Create links with Lua pattern matching", link = true};
+mode.recp = {desc = "Copy with Lua pattern matching", copy = true, file_action=copy_file};
+mode.remv = {desc = "Move with Lua pattern matching", move = true, file_action=move_file};
+mode.reln = {desc = "Create links with Lua pattern matching", link = true, file_action=link_file};
 mode.reexec = {desc = "Find and Execute with Lua pattern matching", exec = true};
 mode_mt = {}
 mode_mt.__index = function(table,key)
@@ -72,7 +119,7 @@ parser:flag("-v")
 parser:flag("-l")
    :description("Interpret DEST as Lua code.")
 
-if cur_mode[link] then
+if cur_mode.link then
    parser:flag("-s")
       :description("Create symbolic link (defaults to hard link)")
 end
@@ -100,7 +147,7 @@ local function handle_dir(dir_names)
          pathname = dir_name.."/"..dir_obj;
 
 	 newname = string.gsub(pathname, args.SRC, args.DEST)
-	 
+--print ("'"..pathname.."' -> '"..newname.."'")	 
          attrs = lfs.attributes(pathname);
 --print("'"..pathname.."' is a "..attrs.mode);
 
@@ -117,26 +164,12 @@ local function handle_dir(dir_names)
 	    end
 	 elseif( attrs.mode == "file" ) then
 	    if( args.d == nil ) then
-	       -- todo
-	       print("Handling file '"..pathname.."'")
+	       cur_mode.file_action( pathname, newname, args )
 	    end
 	 end
       end
       idx = idx + 1
    end
-end
-
-local function copy_file(src, dest)
-   local BUFSIZE = 2^20 -- 1MB at a time
-   local fin = assert(io.open(src, "rb"))
-   local fout = assert(io.open(dest, "wb"))
-   while true do
-      local bytes = fin:read(block)
-      if not bytes then break end
-      fout:write(bytes)
-   end
-   fin:close()
-   fout:close()
 end
 
 -- debug
@@ -147,6 +180,11 @@ print("[End Debug]")
 -- If -l is specified, reinterpret DEST as Lua code.
 if args.l then
    args.DEST = load(args.DEST)
+end
+
+-- If --dry-run is specified, force -v
+if args.dry_run then
+   args.v = true
 end
    
 handle_dir({'.'})
