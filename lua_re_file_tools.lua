@@ -38,11 +38,11 @@ run_modes.recp = {command="copy"};
 run_modes.remv = {command="move"};
 run_modes.reln = {command="link"};
 run_modes.reexec = {command="exec"};
--- run_modes_mt = {}
--- run_modes_mt.__index = function(table,key)
---    return {command="default"}
--- end
--- setmetatable(run_modes, run_modes_mt)
+run_modes_mt = {}
+run_modes_mt.__index = function(table,key)
+   return {command="default"}
+end
+setmetatable(run_modes, run_modes_mt)
 
 -- Define helper functions
 local function link_file(src, dest, args)
@@ -93,31 +93,36 @@ end
 
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
+local single_command = function ( parser ) return parser; end;
 local mode = {}
 mode.copy = {
    desc = "Copy with Lua pattern matching",
-   copy = true,
+   get_copy_parser = single_command,
    file_action=copy_file,
 };
 mode.move = {
    desc = "Move with Lua pattern matching",
-   move = true,
+   get_move_parser = single_command,
    file_action=move_file,
 };
 mode.link = {
    desc = "Create links with Lua pattern matching",
-   link = true,
+   get_link_parser = single_command,
    file_action=link_file,
 };
 mode.exec = {
    desc = "Find and Execute with Lua pattern matching",
-   exec = true,
+   get_exec_parser = single_command,
 };
 -- Default case
 mode_mt = {}
 mode_mt.__index = function(table,key)
    return {
       desc = "Tool to move/copy/link files with Lua pattern matching",
+      get_copy_parser = function ( parser ) return parser:command("copy") end,
+      get_move_parser = function ( parser ) return parser:command("move") end,
+      get_link_parser = function ( parser ) return parser:command("link") end,
+      get_exec_parser = function ( parser ) return parser:command("exec") end,
    }
 end
 setmetatable(mode, mode_mt)
@@ -150,23 +155,68 @@ parser:flag("-v")
 parser:flag("-l")
    :description("Interpret DEST as Lua code.")
 
-if cur_mode.link then
-   parser:flag("-s")
+-- Define sub-command options
+local sub_parser;
+   
+-- Define copy-specific options
+sub_parser = cur_mode.get_copy_parser;
+if sub_parser then
+   sub_parser = sub_parser( parser )
+   sub_parser:argument("SRC")
+      :description("Expression used to match source files")
+      :args(1)
+
+   sub_parser:argument("DEST")
+      :description("Expression used generate destination file names")
+      :args(1)
+end
+
+-- Define move-specific options
+sub_parser = cur_mode.get_move_parser;
+if sub_parser then
+   sub_parser = sub_parser( parser )
+   sub_parser:argument("SRC")
+      :description("Expression used to match source files")
+      :args(1)
+
+   sub_parser:argument("DEST")
+      :description("Expression used generate destination file names")
+      :args(1)
+end
+
+-- Define link-specific options
+sub_parser = cur_mode.get_link_parser;
+if sub_parser then
+   sub_parser = sub_parser( parser )
+   sub_parser:argument("SRC")
+      :description("Expression used to match source files")
+      :args(1)
+
+   sub_parser:argument("DEST")
+      :description("Expression used generate destination file names")
+      :args(1)
+
+   sub_parser:flag("-s")
       :description("Create symbolic link (defaults to hard link)")
+end
+
+-- Define exec-specific options
+sub_parser = cur_mode.get_exec_parser;
+if sub_parser then
+   sub_parser = sub_parser( parser )
+   sub_parser:argument("SRC")
+      :description("Expression used to match source files")
+      :args(1)
+
+   sub_parser:argument("DEST")
+      :description("Expression used generate destination file names")
+      :args(1)
 end
 
 -- parser:argument("DIR")
 --    :description("Optional starting directory to look for source files.")
 --    :args("?")
 --    :default "."
-
-parser:argument("SRC")
-   :description("Expression used to match source files")
-   :args(1)
-
-parser:argument("DEST")
-   :description("Expression used generate destination file names")
-   :args(1)
 
 local args = parser:parse(arg);
 
