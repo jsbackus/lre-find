@@ -94,40 +94,46 @@ end
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local single_command = function ( parser ) return parser; end;
-local mode = {}
-mode.copy = {
+local fn_modes = {}
+fn_modes.copy = {
    desc = "Copy with Lua pattern matching",
-   get_copy_parser = single_command,
+   parsers = { copy = single_command },
    file_action=copy_file,
 };
-mode.move = {
+fn_modes.move = {
    desc = "Move with Lua pattern matching",
-   get_move_parser = single_command,
+   parsers = { move = single_command },
    file_action=move_file,
 };
-mode.link = {
+fn_modes.link = {
    desc = "Create links with Lua pattern matching",
-   get_link_parser = single_command,
+   parsers = { link = single_command },
    file_action=link_file,
 };
-mode.exec = {
+fn_modes.exec = {
    desc = "Find and Execute with Lua pattern matching",
-   get_exec_parser = single_command,
+   parsers = { exec = single_command },
 };
--- Default case
-mode_mt = {}
-mode_mt.__index = function(table,key)
+-- Default case. Create a new parser for each mode.
+fn_modes_mt = {}
+fn_modes_mt.__index = function(table,key)
+   local ret_val_mt = {}
+   ret_val_mt.__index = function(table, key)
+      return function ( parser )
+	 return parser:command(key, fn_modes[key]["description"])
+      end
+   end
+   local ret_val = {}
+   setmetatable(ret_val, ret_val_mt)
+
    return {
       desc = "Tool to move/copy/link files with Lua pattern matching",
-      get_copy_parser = function ( parser ) return parser:command("copy") end,
-      get_move_parser = function ( parser ) return parser:command("move") end,
-      get_link_parser = function ( parser ) return parser:command("link") end,
-      get_exec_parser = function ( parser ) return parser:command("exec") end,
+      parsers = ret_val,
    }
 end
-setmetatable(mode, mode_mt)
+setmetatable(fn_modes, fn_modes_mt)
 
-local cur_mode = mode[run_modes[run_as]["command"]]
+local cur_mode = fn_modes[run_modes[run_as]["command"]]
 
 -- Define command-line argument parser
 local parser = argparse()
@@ -136,7 +142,7 @@ local parser = argparse()
    :add_help "-h"
    :epilog(run_as..copyright)
 
--- Parser Options
+-- Global parser Options
 parser:flag("-r")
    :description("Recursively process directories")
 
@@ -159,9 +165,10 @@ parser:flag("-l")
 local sub_parser;
    
 -- Define copy-specific options
-sub_parser = cur_mode.get_copy_parser;
+sub_parser = cur_mode.parsers["copy"];
 if sub_parser then
    sub_parser = sub_parser( parser )
+
    sub_parser:argument("SRC")
       :description("Expression used to match source files")
       :args(1)
@@ -172,9 +179,10 @@ if sub_parser then
 end
 
 -- Define move-specific options
-sub_parser = cur_mode.get_move_parser;
+sub_parser = cur_mode.parsers["move"];
 if sub_parser then
    sub_parser = sub_parser( parser )
+
    sub_parser:argument("SRC")
       :description("Expression used to match source files")
       :args(1)
@@ -185,9 +193,10 @@ if sub_parser then
 end
 
 -- Define link-specific options
-sub_parser = cur_mode.get_link_parser;
+sub_parser = cur_mode.parsers["link"];
 if sub_parser then
    sub_parser = sub_parser( parser )
+
    sub_parser:argument("SRC")
       :description("Expression used to match source files")
       :args(1)
@@ -201,9 +210,10 @@ if sub_parser then
 end
 
 -- Define exec-specific options
-sub_parser = cur_mode.get_exec_parser;
+sub_parser = cur_mode.parsers["exec"];
 if sub_parser then
    sub_parser = sub_parser( parser )
+
    sub_parser:argument("SRC")
       :description("Expression used to match source files")
       :args(1)
