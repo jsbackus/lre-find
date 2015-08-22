@@ -45,7 +45,7 @@ end
 setmetatable(run_modes, run_modes_mt)
 
 -- Define helper functions
-local function link_file(src, dest, args)
+local function link_item(src, dest, args)
    if( args.v ) then
       local cmd = "ln"
       if( args.s ) then
@@ -60,7 +60,7 @@ local function link_file(src, dest, args)
    lfs.link( src, dest, args.s )
 end
 
-local function move_file(src, dest, args)
+local function move_item(src, dest, args)
    if( args.v ) then
       print("mv '"..src.."' '"..dest.."'")
    end
@@ -91,6 +91,30 @@ local function copy_file(src, dest, args)
    fout:close()
 end
 
+local function exec_item(src, dest, args)
+   local out
+   if( args.v ) then
+      out = io.output();
+      out:write("'"..dest.."'");
+      out:close();
+      end
+   end
+   if( args.dry_run ) then
+      return;
+   end
+
+   bOk, result, code = os.execute( dest );
+   if( bOk == nil ) then
+      print("Error: unable to execute '"..dest.."'!")
+      return;
+   end
+   if( args.v ) then
+      out = io.output();
+      out:write(" => "..result.." ("..code..")");
+      out:close();
+   end
+end
+
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local single_command = function ( parser ) return parser; end;
@@ -103,16 +127,17 @@ fn_modes.copy = {
 fn_modes.move = {
    desc = "Move with Lua pattern matching",
    parsers = { move = single_command },
-   file_action=move_file,
+   file_action=move_item,
 };
 fn_modes.link = {
    desc = "Create links with Lua pattern matching",
    parsers = { link = single_command },
-   file_action=link_file,
+   file_action=link_item,
 };
 fn_modes.exec = {
    desc = "Find and Execute with Lua pattern matching",
    parsers = { exec = single_command },
+   file_action=exec_item,
 };
 -- Default case. Create a new parser for each mode.
 fn_modes_mt = {}
