@@ -94,13 +94,31 @@ end
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local mode = {}
-mode.copy = {desc = "Copy with Lua pattern matching", copy = true, file_action=copy_file};
-mode.move = {desc = "Move with Lua pattern matching", move = true, file_action=move_file};
-mode.link = {desc = "Create links with Lua pattern matching", link = true, file_action=link_file};
-mode.exec = {desc = "Find and Execute with Lua pattern matching", exec = true};
+mode.copy = {
+   desc = "Copy with Lua pattern matching",
+   copy = true,
+   file_action=copy_file,
+};
+mode.move = {
+   desc = "Move with Lua pattern matching",
+   move = true,
+   file_action=move_file,
+};
+mode.link = {
+   desc = "Create links with Lua pattern matching",
+   link = true,
+   file_action=link_file,
+};
+mode.exec = {
+   desc = "Find and Execute with Lua pattern matching",
+   exec = true,
+};
+-- Default case
 mode_mt = {}
 mode_mt.__index = function(table,key)
-   return { desc = "Tool to move/copy/link files with Lua pattern matching" }
+   return {
+      desc = "Tool to move/copy/link files with Lua pattern matching",
+   }
 end
 setmetatable(mode, mode_mt)
 
