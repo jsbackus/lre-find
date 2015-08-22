@@ -97,9 +97,9 @@ local function exec_item(src, dest, args)
       out = io.output();
       out:write("'"..dest.."'");
       out:close();
-      end
    end
    if( args.dry_run ) then
+      print("");
       return;
    end
 
@@ -109,9 +109,7 @@ local function exec_item(src, dest, args)
       return;
    end
    if( args.v ) then
-      out = io.output();
-      out:write(" => "..result.." ("..code..")");
-      out:close();
+      print(" => "..result.." ("..code..")");
    end
 end
 
