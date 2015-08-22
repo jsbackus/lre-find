@@ -31,6 +31,19 @@ local argparse = require "argparse";
 -- Figure out how we were invoked
 local _, _, run_as = string.find(arg[0], "([^/]+)$");
 
+-- Create a table to handle different options for how we are started
+-- Override __index to create a default case.
+local run_modes = {}
+run_modes.recp = {command="copy"};
+run_modes.remv = {command="move"};
+run_modes.reln = {command="link"};
+run_modes.reexec = {command="exec"};
+-- run_modes_mt = {}
+-- run_modes_mt.__index = function(table,key)
+--    return {command="default"}
+-- end
+-- setmetatable(run_modes, run_modes_mt)
+
 -- Define helper functions
 local function link_file(src, dest, args)
    if( args.v ) then
@@ -81,17 +94,17 @@ end
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local mode = {}
-mode.recp = {desc = "Copy with Lua pattern matching", copy = true, file_action=copy_file};
-mode.remv = {desc = "Move with Lua pattern matching", move = true, file_action=move_file};
-mode.reln = {desc = "Create links with Lua pattern matching", link = true, file_action=link_file};
-mode.reexec = {desc = "Find and Execute with Lua pattern matching", exec = true};
+mode.copy = {desc = "Copy with Lua pattern matching", copy = true, file_action=copy_file};
+mode.move = {desc = "Move with Lua pattern matching", move = true, file_action=move_file};
+mode.link = {desc = "Create links with Lua pattern matching", link = true, file_action=link_file};
+mode.exec = {desc = "Find and Execute with Lua pattern matching", exec = true};
 mode_mt = {}
 mode_mt.__index = function(table,key)
    return { desc = "Tool to move/copy/link files with Lua pattern matching" }
 end
 setmetatable(mode, mode_mt)
 
-local cur_mode = mode[run_as]
+local cur_mode = mode[run_modes[run_as]["command"]]
 
 -- Define command-line argument parser
 local parser = argparse()
