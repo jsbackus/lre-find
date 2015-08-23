@@ -60,7 +60,10 @@ local function link_item(src, dest, args)
       return
    end
 
-   lfs.link( src, dest, args.s )
+   ok, msg, code = lfs.link( src, dest, args.s )
+   if( ok == nil ) then
+      print("Error creating link from '"..src.."' to '"..dest.."': "..msg)
+   end
 end
 
 local function move_item(src, dest, args)
