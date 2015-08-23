@@ -46,6 +46,9 @@ setmetatable(run_modes, run_modes_mt)
 
 -- Define helper functions
 local function link_item(src, dest, args)
+   if( args.s and args.a ) then
+      src = lfs.currentdir().."/"..src
+   end
    if( args.v ) then
       local cmd = "ln"
       if( args.s ) then
@@ -230,6 +233,9 @@ if sub_parser then
 
    sub_parser:flag("-s")
       :description("Create symbolic link (defaults to hard link)")
+
+   sub_parser:flag("-a")
+      :description("Use absolute path when making symbolic link.")
 end
 
 -- Define exec-specific options
@@ -258,7 +264,10 @@ local function handle_dir(dir_names)
    while( idx <= #dir_names ) do
       local dir_name = dir_names[idx];
       for dir_obj in lfs.dir(dir_name) do
-         pathname = dir_name.."/"..dir_obj;
+	 pathname = dir_obj
+	 if( dir_name ~= '.' ) then
+	    pathname = dir_name.."/"..pathname;
+	 end
 
 	 newname = string.gsub(pathname, args.SRC, args.DEST)
 --print ("'"..pathname.."' -> '"..newname.."'")	 
