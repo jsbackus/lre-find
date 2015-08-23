@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 
--- Copyright (C) 2015 Jeff Backus
+-- Copyright (C) 2015 Jeff Backus(jeff@jsbackus.com)
 --
 -- Permission is hereby granted, free of charge, to any person
 -- obtaining a copy of this software and associated documentation
