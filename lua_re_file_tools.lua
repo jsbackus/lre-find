@@ -86,7 +86,7 @@ local function copy_file(src, dest, args)
    local fin = assert(io.open(src, "rb"))
    local fout = assert(io.open(dest, "wb"))
    while true do
-      local bytes = fin:read(block)
+      local bytes = fin:read(BUFSIZE)
       if not bytes then break end
       fout:write(bytes)
    end
