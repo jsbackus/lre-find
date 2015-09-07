@@ -44,8 +44,11 @@ run_modes_mt.__index = function(table,key)
 end
 setmetatable(run_modes, run_modes_mt)
 
+-- Forward declarations of global-ish variables
+local args
+
 -- Define helper functions
-local function link_item(src, dest, args)
+local function link_item(src, dest)
    if( args.s and args.a ) then
       src = lfs.currentdir().."/"..src
    end
@@ -66,7 +69,7 @@ local function link_item(src, dest, args)
    end
 end
 
-local function move_item(src, dest, args)
+local function move_item(src, dest)
    if( args.v ) then
       print("mv '"..src.."' '"..dest.."'")
    end
@@ -76,7 +79,7 @@ local function move_item(src, dest, args)
    os.rename( src, dest )
 end
 
-local function copy_file(src, dest, args)
+local function copy_file(src, dest)
 
    if( args.v ) then
       print("cp '"..src.."' '"..dest.."'")
@@ -97,7 +100,7 @@ local function copy_file(src, dest, args)
    fout:close()
 end
 
-local function exec_item(src, dest, args)
+local function exec_item(src, dest)
    local out
    if( args.v ) then
       out = io.output();
@@ -260,7 +263,7 @@ end
 --    :args("?")
 --    :default "."
 
-local args = parser:parse(arg);
+args = parser:parse(arg);
 
 local function handle_dir(dir_names)
    local idx = 1;
@@ -290,7 +293,7 @@ local function handle_dir(dir_names)
 	    end
 	 elseif( attrs.mode == "file" ) then
 	    if( args.d == nil ) then
-	       cur_mode.file_action( pathname, newname, args )
+	       cur_mode.file_action( pathname, newname )
 	    end
 	 end
       end
