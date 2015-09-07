@@ -167,6 +167,42 @@ setmetatable(fn_modes, fn_modes_mt)
 
 local cur_mode = fn_modes[run_modes[run_as]["command"]]
 
+local function handle_dir(dir_names)
+   local idx = 1;
+   while( idx <= #dir_names ) do
+      local dir_name = dir_names[idx];
+      for dir_obj in lfs.dir(dir_name) do
+	 pathname = dir_obj
+	 if( dir_name ~= '.' ) then
+	    pathname = dir_name.."/"..pathname;
+	 end
+
+	 newname = string.gsub(pathname, args.SRC, args.DEST)
+--print ("'"..pathname.."' -> '"..newname.."'")	 
+         attrs = lfs.attributes(pathname);
+--print("'"..pathname.."' is a "..attrs.mode);
+
+	 if( attrs.mode == "directory" and
+	     dir_obj ~= '.' and dir_obj ~= '..' ) then
+	    
+	    -- Append to end of list if recursive mode enabled.
+	    if( args.r ) then
+	       dir_names[ #dir_names + 1 ] = pathname
+	    end
+	    if( args.f == nil ) then
+	       -- todo
+	       print("Handling directory '"..pathname.."'")
+	    end
+	 elseif( attrs.mode == "file" ) then
+	    if( args.d == nil ) then
+	       cur_mode.file_action( pathname, newname )
+	    end
+	 end
+      end
+      idx = idx + 1
+   end
+end
+
 -- Define command-line argument parser
 local parser = argparse()
    :name(run_as)
@@ -264,42 +300,6 @@ end
 --    :default "."
 
 args = parser:parse(arg);
-
-local function handle_dir(dir_names)
-   local idx = 1;
-   while( idx <= #dir_names ) do
-      local dir_name = dir_names[idx];
-      for dir_obj in lfs.dir(dir_name) do
-	 pathname = dir_obj
-	 if( dir_name ~= '.' ) then
-	    pathname = dir_name.."/"..pathname;
-	 end
-
-	 newname = string.gsub(pathname, args.SRC, args.DEST)
---print ("'"..pathname.."' -> '"..newname.."'")	 
-         attrs = lfs.attributes(pathname);
---print("'"..pathname.."' is a "..attrs.mode);
-
-	 if( attrs.mode == "directory" and
-	     dir_obj ~= '.' and dir_obj ~= '..' ) then
-	    
-	    -- Append to end of list if recursive mode enabled.
-	    if( args.r ) then
-	       dir_names[ #dir_names + 1 ] = pathname
-	    end
-	    if( args.f == nil ) then
-	       -- todo
-	       print("Handling directory '"..pathname.."'")
-	    end
-	 elseif( attrs.mode == "file" ) then
-	    if( args.d == nil ) then
-	       cur_mode.file_action( pathname, newname )
-	    end
-	 end
-      end
-      idx = idx + 1
-   end
-end
 
 -- debug
 print("[Begin Debug]")
