@@ -203,9 +203,7 @@ local function handle_dir(dir_names)
 	 end
 
 	 newname = transform( pathname )
---print ("'"..pathname.."' -> '"..newname.."'")	 
          attrs = lfs.attributes(pathname);
---print("'"..pathname.."' is a "..attrs.mode);
 
 	 if( attrs.mode == "directory" and
 	     dir_obj ~= '.' and dir_obj ~= '..' ) then
