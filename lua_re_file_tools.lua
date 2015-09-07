@@ -46,8 +46,33 @@ setmetatable(run_modes, run_modes_mt)
 
 -- Forward declarations of global-ish variables
 local args
+local transform
 
 -- Define helper functions
+
+-- Default SRC -> DEST transform
+local function default_transform(path)
+   -- Attempt to match specified path to specified SRC string and put
+   -- result into a table.
+   local t = { string.find( path, args.SRC ) }
+
+   -- No match, so just return.
+   if #t == 0 then
+      return
+   end
+
+   -- Build a table that can be passed to string.gsub() as a map of %N->matched
+   -- value. Place original string into position 0.
+   local map = {}
+
+   for i = 3, #t do
+      map[ tostring(i-2) ] = t[ i ]
+   end
+   map[ "0" ] = path
+   
+   return string.gsub( args.DEST, "%%(%d)", map )
+end
+
 local function link_item(src, dest)
    if( args.s and args.a ) then
       src = lfs.currentdir().."/"..src
@@ -177,7 +202,7 @@ local function handle_dir(dir_names)
 	    pathname = dir_name.."/"..pathname;
 	 end
 
-	 newname = string.gsub(pathname, args.SRC, args.DEST)
+	 newname = transform( pathname )
 --print ("'"..pathname.."' -> '"..newname.."'")	 
          attrs = lfs.attributes(pathname);
 --print("'"..pathname.."' is a "..attrs.mode);
@@ -194,7 +219,7 @@ local function handle_dir(dir_names)
 	       print("Handling directory '"..pathname.."'")
 	    end
 	 elseif( attrs.mode == "file" ) then
-	    if( args.d == nil ) then
+	    if( args.d == nil and newname ~= nil ) then
 	       cur_mode.file_action( pathname, newname )
 	    end
 	 end
@@ -315,5 +340,7 @@ end
 if args.dry_run then
    args.v = true
 end
+
+transform = default_transform
    
 handle_dir({'.'})
