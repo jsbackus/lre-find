@@ -37,6 +37,7 @@ local run_modes = {}
 run_modes.recp = {command="copy"};
 run_modes.remv = {command="move"};
 run_modes.reln = {command="link"};
+run_modes.rerm = {command="remove"};
 run_modes.reexec = {command="exec"};
 run_modes_mt = {}
 run_modes_mt.__index = function(table,key)
@@ -125,6 +126,21 @@ local function copy_file(src, dest)
    fout:close()
 end
 
+local function remove_item(src, dest)
+   if( args.v ) then
+      print("rm '"..src.."'")
+   end
+   if( args.dry_run ) then
+      return
+   end
+
+   if( args.i) then
+      print("Interactive mode not implemented!")
+      return
+   end
+   os.remove( src )
+end
+
 local function exec_item(src, dest)
    local out
    if( args.v ) then
@@ -164,6 +180,11 @@ fn_modes.move = {
 fn_modes.link = {
    desc = "Create links with Lua pattern matching",
    parsers = { link = single_command },
+   file_action=link_item,
+};
+fn_modes.link = {
+   desc = "Remove files and directories with Lua pattern matching",
+   parsers = { remove = single_command },
    file_action=link_item,
 };
 fn_modes.exec = {
@@ -301,6 +322,19 @@ if sub_parser then
 
    sub_parser:flag("-a")
       :description("Use absolute path when making symbolic link.")
+end
+
+-- Define move-specific options
+sub_parser = cur_mode.parsers["remove"];
+if sub_parser then
+   sub_parser = sub_parser( parser )
+
+   sub_parser:argument("SRC")
+      :description("Expression used to match source files")
+      :args(1)
+
+   sub_parser:flag("-i")
+      :description("Prompt before removing.")
 end
 
 -- Define exec-specific options
