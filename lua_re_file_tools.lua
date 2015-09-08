@@ -51,14 +51,15 @@ local transform
 
 -- Define helper functions
 
--- Default SRC -> DEST transform
-local function default_transform(path)
+-- Attempts to match the specified pathname against args.SRC. If it matches,
+-- returns a table of matched elements, or nil otherwise.
+local function match_pathname(path)
    -- Attempt to match specified path to specified SRC string and put
    -- result into a table.
-   local t = { string.find( path, args.SRC ) }
+   local elms = { string.find( path, args.SRC ) }
 
    -- No match, so just return.
-   if #t == 0 then
+   if #elms == 0 then
       return
    end
 
@@ -66,13 +67,32 @@ local function default_transform(path)
    -- value. Place original string into position 0.
    local map = {}
 
-   for i = 3, #t do
-      map[ tostring(i-2) ] = t[ i ]
+   local t
+   if args.l then
+      t = function( i ) return i end
+   else
+      t = function( i ) return tostring(i) end
    end
-   map[ "0" ] = path
    
-   return string.gsub( args.DEST, "%%(%d)", map )
+   for i = 3, #elms do
+      if args.l then
+	 map[ t(i-2) ] = elms[ i ]
+      else
+      end
+   end
+   map[ t(0) ] = path
+
+   return map
 end
+
+-- Default SRC -> DEST transform
+-- Receives a table, v, of elements form the pattern match and substitutes
+-- those values into args.DEST.
+local function default_transform(v)
+   return string.gsub( args.DEST, "%%(%d)", v )
+end
+-- Set default transform
+transform = default_transform
 
 local function link_item(src, dest)
    if( args.s and args.a ) then
@@ -182,7 +202,7 @@ fn_modes.link = {
    parsers = { link = single_command },
    file_action=link_item,
 };
-fn_modes.link = {
+fn_modes.remove = {
    desc = "Remove files and directories with Lua pattern matching",
    parsers = { remove = single_command },
    file_action=link_item,
@@ -223,8 +243,15 @@ local function handle_dir(dir_names)
 	    pathname = dir_name.."/"..pathname;
 	 end
 
-	 newname = transform( pathname )
          attrs = lfs.attributes(pathname);
+
+	 -- Attempt to match against SRC
+	 elements = match_pathname( pathname )
+	 if elements then
+	    newname = transform( elements )
+	 else
+	    newname = nil
+	 end
 
 	 if( attrs.mode == "directory" and
 	     dir_obj ~= '.' and dir_obj ~= '..' ) then
@@ -363,9 +390,10 @@ print("[Begin Debug]")
 for k,v in pairs(args) do print("\t"..k.." = '"..tostring(v).."'") end
 print("[End Debug]")
 
--- If -l is specified, reinterpret DEST as Lua code.
+-- If -l is specified, reinterpret DEST as Lua code. Prepend defining a local
+-- varargs that contains the results of the match.
 if args.l then
-   args.DEST = load(args.DEST)
+   transform = loadstring("local v={...}; v=v[1]; "..args.DEST)
 end
 
 -- If --dry-run is specified, force -v
@@ -373,6 +401,4 @@ if args.dry_run then
    args.v = true
 end
 
-transform = default_transform
-   
 handle_dir({'.'})
