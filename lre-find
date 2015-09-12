@@ -45,17 +45,17 @@ end
 setmetatable(run_modes, run_modes_mt)
 
 -- Forward declarations of global-ish variables
-local args
+local settings
 local transform
 
 -- Define helper functions
 
--- Attempts to match the specified pathname against args.SRC. If it matches,
+-- Attempts to match the specified pathname against settings.SRC. If it matches,
 -- returns a table of matched elements, or nil otherwise.
 local function match_pathname(path)
    -- Attempt to match specified path to specified SRC string and put
    -- result into a table.
-   local elms = { string.match( path, args.SRC ) }
+   local elms = { string.match( path, settings.SRC ) }
 
    -- No match, so just return.
    if #elms == 0 then
@@ -67,14 +67,14 @@ local function match_pathname(path)
    local map = {}
 
    local t
-   if args.l then
+   if settings.l then
       t = function( i ) return i end
    else
       t = function( i ) return tostring(i) end
    end
    
    for i = 1, #elms do
-      if args.l then
+      if settings.l then
 	 map[ t(i) ] = elms[ i ]
       else
       end
@@ -86,39 +86,39 @@ end
 
 -- Default SRC -> DEST transform
 -- Receives a table, v, of elements form the pattern match and substitutes
--- those values into args.DEST.
+-- those values into settings.DEST.
 local function default_transform(v)
-   return string.gsub( args.DEST, "%%(%d)", v )
+   return string.gsub( settings.DEST, "%%(%d)", v )
 end
 -- Set default transform
 transform = default_transform
 
 local function link_item(src, dest)
-   if( args.s and args.a ) then
+   if( settings.s and settings.a ) then
       src = lfs.currentdir().."/"..src
    end
-   if( args.v ) then
+   if( settings.v ) then
       local cmd = "ln"
-      if( args.s ) then
+      if( settings.s ) then
 	 cmd = cmd.." -s"
       end
       print(cmd.." '"..src.."' '"..dest.."'")
    end
-   if( args.dry_run ) then
+   if( settings.dry_run ) then
       return
    end
 
-   ok, msg, code = lfs.link( src, dest, args.s )
+   ok, msg, code = lfs.link( src, dest, settings.s )
    if( ok == nil ) then
       print("Error creating link from '"..src.."' to '"..dest.."': "..msg)
    end
 end
 
 local function move_item(src, dest)
-   if( args.v ) then
+   if( settings.v ) then
       print("mv '"..src.."' '"..dest.."'")
    end
-   if( args.dry_run ) then
+   if( settings.dry_run ) then
       return
    end
    os.rename( src, dest )
@@ -126,10 +126,10 @@ end
 
 local function copy_file(src, dest)
 
-   if( args.v ) then
+   if( settings.v ) then
       print("cp '"..src.."' '"..dest.."'")
    end
-   if( args.dry_run ) then
+   if( settings.dry_run ) then
       return
    end
    
@@ -146,14 +146,14 @@ local function copy_file(src, dest)
 end
 
 local function remove_item(src, dest)
-   if( args.v ) then
+   if( settings.v ) then
       print("rm '"..src.."'")
    end
-   if( args.dry_run ) then
+   if( settings.dry_run ) then
       return
    end
 
-   if( args.i) then
+   if( settings.i) then
       print("Interactive mode not implemented!")
       return
    end
@@ -162,12 +162,12 @@ end
 
 local function exec_item(src, dest)
    local out
-   if( args.v ) then
+   if( settings.v ) then
       out = io.output();
       out:write("'"..dest.."'");
       out:close();
    end
-   if( args.dry_run ) then
+   if( settings.dry_run ) then
       print("");
       return;
    end
@@ -177,7 +177,7 @@ local function exec_item(src, dest)
       print("Error: unable to execute '"..dest.."'!")
       return;
    end
-   if( args.v ) then
+   if( settings.v ) then
       print(" => "..result.." ("..code..")");
    end
 end
@@ -256,15 +256,15 @@ local function handle_dir(dir_names)
 	     dir_obj ~= '.' and dir_obj ~= '..' ) then
 	    
 	    -- Append to end of list if recursive mode enabled.
-	    if( args.r ) then
+	    if( settings.r ) then
 	       dir_names[ #dir_names + 1 ] = pathname
 	    end
-	    if( args.f == nil ) then
+	    if( settings.f == nil ) then
 	       -- todo
 	       print("Handling directory '"..pathname.."'")
 	    end
 	 elseif( attrs.mode == "file" ) then
-	    if( args.d == nil and newname ~= nil ) then
+	    if( settings.d == nil and newname ~= nil ) then
 	       cur_mode.file_action( pathname, newname )
 	    end
 	 end
@@ -309,11 +309,11 @@ end
 
 --    sub_parser:argument("SRC")
 --       :description("Expression used to match source files")
---       :args(1)
+--       :settings(1)
 
 --    sub_parser:argument("DEST")
 --       :description("Expression used generate destination file names")
---       :args(1)
+--       :settings(1)
 -- end
 
 -- -- Define move-specific options
@@ -323,11 +323,11 @@ end
 
 --    sub_parser:argument("SRC")
 --       :description("Expression used to match source files")
---       :args(1)
+--       :settings(1)
 
 --    sub_parser:argument("DEST")
 --       :description("Expression used generate destination file names")
---       :args(1)
+--       :settings(1)
 -- end
 
 -- -- Define link-specific options
@@ -337,11 +337,11 @@ end
 
 --    sub_parser:argument("SRC")
 --       :description("Expression used to match source files")
---       :args(1)
+--       :settings(1)
 
 --    sub_parser:argument("DEST")
 --       :description("Expression used generate destination file names")
---       :args(1)
+--       :settings(1)
 
 --    sub_parser:flag("-s")
 --       :description("Create symbolic link (defaults to hard link)")
@@ -357,7 +357,7 @@ end
 
 --    sub_parser:argument("SRC")
 --       :description("Expression used to match source files")
---       :args(1)
+--       :settings(1)
 
 --    sub_parser:flag("-i")
 --       :description("Prompt before removing.")
@@ -370,19 +370,19 @@ end
 
 --    sub_parser:argument("SRC")
 --       :description("Expression used to match source files")
---       :args(1)
+--       :settings(1)
 
 --    sub_parser:argument("DEST")
 --       :description("Expression used generate destination file names")
---       :args(1)
+--       :settings(1)
 -- end
 
 -- -- parser:argument("DIR")
 -- --    :description("Optional starting directory to look for source files.")
--- --    :args("?")
+-- --    :settings("?")
 -- --    :default "."
 
--- args = parser:parse(arg);
+-- settings = parser:parse(arg);
 
 -- debug
 print("[Begin Debug]")
@@ -390,14 +390,14 @@ for k,v in pairs(arg) do print("\t"..k..": '"..tostring(v).."'") end
 print("[End Debug]")
 
 -- -- If -l is specified, reinterpret DEST as Lua code. Prepend defining a local
--- -- varargs that contains the results of the match.
--- if args.l then
---    transform = loadstring("local v={...}; v=v[1]; "..args.DEST)
+-- -- varsettings that contains the results of the match.
+-- if settings.l then
+--    transform = loadstring("local v={...}; v=v[1]; "..settings.DEST)
 -- end
 
 -- -- If --dry-run is specified, force -v
--- if args.dry_run then
---    args.v = true
+-- if settings.dry_run then
+--    settings.v = true
 -- end
 
 handle_dir({'.'})
