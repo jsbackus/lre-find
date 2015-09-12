@@ -46,6 +46,8 @@ setmetatable(run_modes, run_modes_mt)
 
 -- Forward declarations of global-ish variables
 local settings
+local options = {}
+local showMsgs = {}
 local transform
 
 -- Define helper functions
@@ -273,7 +275,37 @@ local function handle_dir(dir_names)
    end
 end
 
--- -- Define command-line argument parser
+-- Define table of command-line arguments. Format:
+-- "argument" = {
+--   desc = "description",
+--   params = { param1 = "desc", ... paramN = "desc" }
+--   action = function( index ) return next_index end
+-- }
+-- 
+-- Each action function should take 1 argument, the index into the arg 
+-- variable, and return the number of arguments consumed
+options = {}
+
+options["--help"] = { desc = "Show help and exit",
+		      action = function( index ) do_help(); os.exit(0); end }
+
+options["--version"] = { desc = "Show version information and exit",
+			 action = function( index )
+			    print(run_as..copyright)
+			    os.exit(0)
+			 end }
+
+options["-D"] = { desc = "Displays debug information",
+		  params = { debugoptions = "Comma-delimited list of debug " ..
+				"options to turn on" },
+		  action = function( index )
+		     for i in arg[ index + 1 ]:gmatch("([^,]+)") do
+			print("Setting "..i)
+			showMsgs[ i ] = true
+		     end
+		     return 1
+		  end }
+
 -- local parser = argparse()
 --    :name(run_as)
 --    :description(cur_mode["desc"])
@@ -384,11 +416,6 @@ end
 
 -- settings = parser:parse(arg);
 
--- debug
-print("[Begin Debug]")
-for k,v in pairs(arg) do print("\t"..k..": '"..tostring(v).."'") end
-print("[End Debug]")
-
 -- -- If -l is specified, reinterpret DEST as Lua code. Prepend defining a local
 -- -- varsettings that contains the results of the match.
 -- if settings.l then
@@ -400,4 +427,40 @@ print("[End Debug]")
 --    settings.v = true
 -- end
 
-handle_dir({'.'})
+-- Handle Arguments
+local paths = { }
+local i = 1
+while i <= #arg do
+   print("Checking "..tostring(i)..": '"..arg[i].."'")
+   if( arg[ i ]:sub(1,1) == '-' ) then
+      local o = options[ arg[ i ] ]
+      if o then
+	 i = i + 1 + o.action( i )
+      else
+	 print("Error: Unknown option '"..arg[ i ].."'!")
+	 os.exit(1)
+      end
+      
+   else
+      paths[ #paths + 1 ] = arg[ i ]
+      i = i + 1
+   end
+end
+
+-- debug
+print("[Begin Debug]")
+for k,v in pairs(arg) do print("\t"..k..": '"..tostring(v).."'") end
+print("----")
+do
+local tmp = {}
+for k,v in pairs(showMsgs) do tmp[ #tmp + 1] = k end
+print(table.concat(tmp,","))
+end
+print("[End Debug]")
+
+-- Crawl specified directories
+if #paths <= 0 then
+   paths = {'.'}
+end
+
+--handle_dir(paths)
