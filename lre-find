@@ -29,7 +29,7 @@ local lfs = require "lfs";
 local argparse = require "argparse";
 
 -- Figure out how we were invoked
-local _, _, run_as = string.find(arg[0], "([^/]+)$");
+local run_as = string.match(arg[0], "([^/]+)$");
 
 -- Create a table to handle different options for how we are started
 -- Override __index to create a default case.
@@ -56,7 +56,7 @@ local transform
 local function match_pathname(path)
    -- Attempt to match specified path to specified SRC string and put
    -- result into a table.
-   local elms = { string.find( path, args.SRC ) }
+   local elms = { string.match( path, args.SRC ) }
 
    -- No match, so just return.
    if #elms == 0 then
@@ -74,9 +74,9 @@ local function match_pathname(path)
       t = function( i ) return tostring(i) end
    end
    
-   for i = 3, #elms do
+   for i = 1, #elms do
       if args.l then
-	 map[ t(i-2) ] = elms[ i ]
+	 map[ t(i) ] = elms[ i ]
       else
       end
    end
