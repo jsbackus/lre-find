@@ -22,7 +22,7 @@
 -- CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-local version = "0.1";
+local version = "0";
 local copyright = " v" .. version .. " Copyright (C) 2015 Jeff Backus";
 
 local lfs = require "lfs";
