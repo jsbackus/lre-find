@@ -69,14 +69,14 @@ local function match_pathname(path)
    local map = {}
 
    local t
-   if settings.l then
+   if settings.lua then
       t = function( i ) return i end
    else
       t = function( i ) return tostring(i) end
    end
    
    for i = 1, #elms do
-      if settings.l then
+      if settings.lua then
 	 map[ t(i) ] = elms[ i ]
       else
       end
@@ -96,12 +96,12 @@ end
 transform = default_transform
 
 local function link_item(src, dest)
-   if( settings.s and settings.a ) then
+   if( settings.symbolic and settings.absolute ) then
       src = lfs.currentdir().."/"..src
    end
-   if( settings.v ) then
+   if( settings.verbose ) then
       local cmd = "ln"
-      if( settings.s ) then
+      if( settings.symbolic ) then
 	 cmd = cmd.." -s"
       end
       print(cmd.." '"..src.."' '"..dest.."'")
@@ -110,14 +110,14 @@ local function link_item(src, dest)
       return
    end
 
-   ok, msg, code = lfs.link( src, dest, settings.s )
+   ok, msg, code = lfs.link( src, dest, settings.symbolic )
    if( ok == nil ) then
       print("Error creating link from '"..src.."' to '"..dest.."': "..msg)
    end
 end
 
 local function move_item(src, dest)
-   if( settings.v ) then
+   if( settings.verbose ) then
       print("mv '"..src.."' '"..dest.."'")
    end
    if( settings.dry_run ) then
@@ -128,7 +128,7 @@ end
 
 local function copy_file(src, dest)
 
-   if( settings.v ) then
+   if( settings.verbose ) then
       print("cp '"..src.."' '"..dest.."'")
    end
    if( settings.dry_run ) then
@@ -148,14 +148,14 @@ local function copy_file(src, dest)
 end
 
 local function remove_item(src, dest)
-   if( settings.v ) then
+   if( settings.verbose ) then
       print("rm '"..src.."'")
    end
    if( settings.dry_run ) then
       return
    end
 
-   if( settings.i) then
+   if( settings.interactive ) then
       print("Interactive mode not implemented!")
       return
    end
@@ -164,7 +164,7 @@ end
 
 local function exec_item(src, dest)
    local out
-   if( settings.v ) then
+   if( settings.verbose ) then
       out = io.output();
       out:write("'"..dest.."'");
       out:close();
@@ -179,7 +179,7 @@ local function exec_item(src, dest)
       print("Error: unable to execute '"..dest.."'!")
       return;
    end
-   if( settings.v ) then
+   if( settings.verbose ) then
       print(" => "..result.." ("..code..")");
    end
 end
@@ -258,15 +258,15 @@ local function handle_dir(dir_names)
 	     dir_obj ~= '.' and dir_obj ~= '..' ) then
 	    
 	    -- Append to end of list if recursive mode enabled.
-	    if( settings.r ) then
+	    if( settings.recursive ) then
 	       dir_names[ #dir_names + 1 ] = pathname
 	    end
-	    if( settings.f == nil ) then
+	    if( settings.files_only == nil ) then
 	       -- todo
 	       print("Handling directory '"..pathname.."'")
 	    end
 	 elseif( attrs.mode == "file" ) then
-	    if( settings.d == nil and newname ~= nil ) then
+	    if( settings.dirs_only == nil and newname ~= nil ) then
 	       cur_mode.file_action( pathname, newname )
 	    end
 	 end
@@ -295,16 +295,81 @@ options["--version"] = { desc = "Show version information and exit",
 			    os.exit(0)
 			 end }
 
-options["-D"] = { desc = "Displays debug information",
-		  params = { debugoptions = "Comma-delimited list of debug " ..
-				"options to turn on" },
+-- options["-D"] = { desc = "Displays debug information",
+-- 		  params = { debugoptions = "Comma-delimited list of debug " ..
+-- 				"options to turn on" },
+-- 		  action = function( index )
+-- 		     for i in arg[ index + 1 ]:gmatch("([^,]+)") do
+-- 			print("Setting "..i)
+-- 			showMsgs[ i ] = true
+-- 		     end
+-- 		     return 1
+-- 		  end }
+
+options["-v"] = { desc = "Display actions",
 		  action = function( index )
-		     for i in arg[ index + 1 ]:gmatch("([^,]+)") do
-			print("Setting "..i)
-			showMsgs[ i ] = true
-		     end
+		     settings.verbose = true
 		     return 1
 		  end }
+
+options["--dry-run"] = { desc = "Dry run (don't actually do anything). Implies -v.",
+			 action = function( index )
+			    settings.dry_run = true
+			    settings.verbose = true
+			    return 1
+			 end }
+
+options["-r"] = { desc = "Search recursively",
+		  action = function( index )
+		     settings.recursive = true
+		     return 1
+		  end }
+
+options["-d"] = { desc = "Only match directories",
+		  action = function( index )
+		     settings.dirs_only = true
+		     return 1
+		  end }
+
+options["-f"] = { desc = "Only match files",
+		  action = function( index )
+		     settings.files_only = true
+		     return 1
+		  end }
+
+options["-c"] = { desc = "Copy files",
+		  action = function( index )
+		     cur_mode = fn_modes.copy
+		     return 1
+		  end }
+
+options["-m"] = { desc = "Move files",
+		  action = function( index )
+		     cur_mode = fn_modes.move
+		     return 1
+		  end }
+
+options["-l"] = { desc = "Link files",
+		  action = function( index )
+		     cur_mode = fn_modes.link
+		     return 1
+		  end }
+
+options["--delete"] = { desc = "remove files",
+		  action = function( index )
+		     cur_mode = fn_modes.remove
+		     return 1
+		  end }
+
+options["-e"] = { desc = "Run command, one match at a time",
+		  action = function( index )
+		     cur_mode = fn_modes.exec
+		     return 1
+		  end }
+
+-- TODO: Options to:
+-- * change to parent directory before executing
+-- * combine all matches into a single command
 
 -- local parser = argparse()
 --    :name(run_as)
@@ -418,16 +483,17 @@ options["-D"] = { desc = "Displays debug information",
 
 -- -- If -l is specified, reinterpret DEST as Lua code. Prepend defining a local
 -- -- varsettings that contains the results of the match.
--- if settings.l then
+-- if settings.lua then
 --    transform = loadstring("local v={...}; v=v[1]; "..settings.DEST)
 -- end
 
 -- -- If --dry-run is specified, force -v
 -- if settings.dry_run then
---    settings.v = true
+--    settings.verbose = true
 -- end
 
 -- Handle Arguments
+-- TODO: Need to be able to combine short args
 local paths = { }
 local i = 1
 while i <= #arg do
