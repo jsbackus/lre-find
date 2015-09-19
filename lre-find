@@ -275,6 +275,17 @@ local function handle_dir(dir_names)
    end
 end
 
+-- Checks the next command-line argument to see if it is another option.
+-- If not, it is extracted and returned. Also returns the 0 if next argument
+-- is a command-line option or 1 if it is an option argument.
+local function get_optional_arg( index )
+   if( arg[ index ]:sub(1,1) == '-' ) then
+      return nil, 0
+   else
+      return arg[ index ], 1
+   end
+end
+
 -- Define table of command-line arguments. Format:
 -- "argument" = {
 --   desc = "description",
@@ -319,9 +330,23 @@ options["--dry-run"] = { desc = "Dry run (don't actually do anything). Implies -
 			    return 1
 			 end }
 
+options["-i"] = { desc = "Ask for each match before performing action",
+		  action = function( index )
+		     settings.interactive = true
+		     return 1
+		  end }
+
 options["-r"] = { desc = "Search recursively",
 		  action = function( index )
 		     settings.recursive = true
+		     return 1
+		  end }
+
+options["-R"] = { desc = "Do not search recursively, but operate on "..
+		     "directories recursively",
+		  action = function( index )
+		     settings.recursive = nil
+		     settings.operate_deep = true
 		     return 1
 		  end }
 
@@ -337,35 +362,84 @@ options["-f"] = { desc = "Only match files",
 		     return 1
 		  end }
 
-options["-c"] = { desc = "Copy files",
-		  action = function( index )
-		     cur_mode = fn_modes.copy
-		     return 1
-		  end }
+options["-c"] = {  desc = "Substitute captures into <transform> and "..
+		      "copy match to result",
+		   use = "<transform>",
+		   action = function( index )
+		      cur_mode = fn_modes.copy
+		      settings.dest = arg[ index + 1 ]
+		      return 2
+		   end }
 
-options["-m"] = { desc = "Move files",
+options["-m"] = { desc = "Substitute captures into <transform> and "..
+		     "move/rename match to result",
+		  use = "<transform>",
 		  action = function( index )
 		     cur_mode = fn_modes.move
-		     return 1
+		     settings.dest = arg[ index + 1 ]
+		     return 2
 		  end }
 
-options["-l"] = { desc = "Link files",
+options["-l"] = { desc = "Substitute captures into <transform> and create a "..
+		     "hard link from match to result",
+		  use = "<transform>",
 		  action = function( index )
 		     cur_mode = fn_modes.link
-		     return 1
+		     settings.dest = arg[ index + 1 ]
+		     return 2
 		  end }
 
-options["--delete"] = { desc = "remove files",
+options["-s"] = { desc = "Substitute captures into <transform> and create a "..
+		     "symbolic link from match to result",
+		  use = "<transform>",
 		  action = function( index )
-		     cur_mode = fn_modes.remove
-		     return 1
+		     cur_mode = fn_modes.link
+		     settings.dest = arg[ index + 1 ]
+		     settings.symbolic = true
+		     return 2
 		  end }
 
-options["-e"] = { desc = "Run command, one match at a time",
+options["--delete"] = { desc = "Substitute captures into <transform> and remove "..
+			   "resulting file or directory",
+			use = "<transform>",
+			action = function( index )
+			   cur_mode = fn_modes.remove
+			   settings.dest = arg[ index + 1 ]
+			   return 2
+			end }
+
+options["-e"] = { desc = "Substitute captures in each match into "..
+		     "<command> and run once per match.",
+		  use = "<command>",
 		  action = function( index )
 		     cur_mode = fn_modes.exec
-		     return 1
+		     settings.dest = arg[ index + 1 ]
+		     return 2
 		  end }
+
+options["-E"] = { desc = "Substitute captures in each match into "..
+		     "<transform> and run <command> on all matches at once.",
+		  use = "<command> <transform>",
+		  action = function( index )
+		     cur_mode = fn_modes.exec
+-- TODO		     
+		     settings.command, num = get_optional_arg( index )
+		     return num + 1
+		     
+		     settings.command = arg[ index + 1 ]
+		     settings.dest = arg[ index + 2 ]
+		     return 3
+		  end }
+
+options["-p"] = { desc = "Substitute captures in each match into "..
+		     "[command], if provided and display.",
+		     use = "[command]",
+		  action = function( index )
+		     cur_mode = fn_modes.exec
+		     settings.dest, num = get_optional_arg( index )
+		     return num + 1
+		  end }
+
 
 -- TODO: Options to:
 -- * change to parent directory before executing
