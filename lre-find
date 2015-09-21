@@ -465,6 +465,7 @@ options["-E"] = {
    end
 }
 
+-- Print
 options["-p"] = {
    max_arguments = 1,
    action = function( opt_args )
@@ -488,133 +489,18 @@ options["-P"] = {
    end
 }
 
+-- Interpret DEST as Lua code
+options["-L"] = {
+   action = function( opt_args )
+      settings.lua = true
+   end
+}
+
 -- TODO: Options to:
 -- * change to parent directory before executing
 -- * combine all matches into a single command
 
--- local parser = argparse()
---    :name(run_as)
---    :description(cur_mode["desc"])
---    :add_help "-h"
---    :epilog(run_as..copyright)
-
--- -- Global parser Options
--- parser:flag("-r")
---    :description("Recursively process directories")
-
--- parser:flag("-d")
---    :description("Only manipulate directories")
-
--- parser:flag("-f")
---    :description("Only manipulate files (still crawls directories if -r used)")
-
--- parser:flag("--dry-run")
---    :description("Dry run (don't actually do anything). Implies -v.")
-
--- parser:flag("-v")
---    :description("Displays actions as they happen.")
-
--- parser:flag("-l")
---    :description("Interpret DEST as Lua code.")
-
--- -- Define sub-command options
--- local sub_parser;
-   
--- -- Define copy-specific options
--- sub_parser = cur_mode.parsers["copy"];
--- if sub_parser then
---    sub_parser = sub_parser( parser )
-
---    sub_parser:argument("SRC")
---       :description("Expression used to match source files")
---       :settings(1)
-
---    sub_parser:argument("DEST")
---       :description("Expression used generate destination file names")
---       :settings(1)
--- end
-
--- -- Define move-specific options
--- sub_parser = cur_mode.parsers["move"];
--- if sub_parser then
---    sub_parser = sub_parser( parser )
-
---    sub_parser:argument("SRC")
---       :description("Expression used to match source files")
---       :settings(1)
-
---    sub_parser:argument("DEST")
---       :description("Expression used generate destination file names")
---       :settings(1)
--- end
-
--- -- Define link-specific options
--- sub_parser = cur_mode.parsers["link"];
--- if sub_parser then
---    sub_parser = sub_parser( parser )
-
---    sub_parser:argument("SRC")
---       :description("Expression used to match source files")
---       :settings(1)
-
---    sub_parser:argument("DEST")
---       :description("Expression used generate destination file names")
---       :settings(1)
-
---    sub_parser:flag("-s")
---       :description("Create symbolic link (defaults to hard link)")
-
---    sub_parser:flag("-a")
---       :description("Use absolute path when making symbolic link.")
--- end
-
--- -- Define move-specific options
--- sub_parser = cur_mode.parsers["remove"];
--- if sub_parser then
---    sub_parser = sub_parser( parser )
-
---    sub_parser:argument("SRC")
---       :description("Expression used to match source files")
---       :settings(1)
-
---    sub_parser:flag("-i")
---       :description("Prompt before removing.")
--- end
-
--- -- Define exec-specific options
--- sub_parser = cur_mode.parsers["exec"];
--- if sub_parser then
---    sub_parser = sub_parser( parser )
-
---    sub_parser:argument("SRC")
---       :description("Expression used to match source files")
---       :settings(1)
-
---    sub_parser:argument("DEST")
---       :description("Expression used generate destination file names")
---       :settings(1)
--- end
-
--- -- parser:argument("DIR")
--- --    :description("Optional starting directory to look for source files.")
--- --    :settings("?")
--- --    :default "."
-
--- settings = parser:parse(arg);
-
--- -- If -l is specified, reinterpret DEST as Lua code. Prepend defining a local
--- -- varsettings that contains the results of the match.
--- if settings.lua then
---    transform = loadstring("local v={...}; v=v[1]; "..settings.DEST)
--- end
-
--- -- If --dry-run is specified, force -v
--- if settings.dry_run then
---    settings.verbose = true
--- end
-
 -- Handle Arguments
--- TODO: Need to be able to combine short args
 local i = 1
 while i <= #arg do
    print("Checking "..tostring(i)..": '"..arg[i].."'")
@@ -682,6 +568,12 @@ end
 -- If no paths specified, assume we start in current one.
 if #paths <= 0 then
    paths = {'.'}
+end
+
+-- If -L is specified, reinterpret DEST as Lua code. Prepend defining a local
+-- varsettings that contains the results of the match.
+if settings.lua then
+   transform = loadstring("local v={...}; v=v[1]; "..settings.dest)
 end
 
 -- debug
