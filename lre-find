@@ -297,14 +297,19 @@ end
 -- variable, and return the number of arguments consumed
 options = {}
 
-options["--help"] = { desc = "Show help and exit",
-		      action = function( index ) do_help(); os.exit(0); end }
+options["--help"] = {
+   action = function( opt_args )
+      do_help()
+      os.exit(0)
+   end
+}
 
-options["--version"] = { desc = "Show version information and exit",
-			 action = function( index )
-			    print(run_as..copyright)
-			    os.exit(0)
-			 end }
+options["--version"] = {
+   action = function( opt_args )
+      print(run_as..copyright)
+      os.exit(0)
+   end
+}
 
 -- options["-D"] = { desc = "Displays debug information",
 -- 		  params = { debugoptions = "Comma-delimited list of debug " ..
@@ -317,129 +322,151 @@ options["--version"] = { desc = "Show version information and exit",
 -- 		     return 1
 -- 		  end }
 
-options["-v"] = { desc = "Display actions",
-		  action = function( index )
-		     settings.verbose = true
-		     return 1
-		  end }
+options["-v"] = {
+   action = function( opt_args )
+      settings.verbose = true
+   end
+}
 
-options["--dry-run"] = { desc = "Dry run (don't actually do anything). Implies -v.",
-			 action = function( index )
-			    settings.dry_run = true
-			    settings.verbose = true
-			    return 1
-			 end }
+options["--dry-run"] = {
+   action = function( opt_args )
+      settings.dry_run = true
+      settings.verbose = true
+   end
+}
 
-options["-i"] = { desc = "Ask for each match before performing action",
-		  action = function( index )
-		     settings.interactive = true
-		     return 1
-		  end }
+-- Interactive mode
+options["-i"] = {
+   action = function( opt_args )
+      settings.interactive = true
+   end
+}
 
-options["-r"] = { desc = "Search recursively",
-		  action = function( index )
-		     settings.recursive = true
-		     return 1
-		  end }
+-- Search and operate recursively
+options["-r"] = { 
+   action = function( opt_args )
+      settings.recursive = true
+      settings.operate_deep = true
+   end
+}
 
-options["-R"] = { desc = "Do not search recursively, but operate on "..
-		     "directories recursively",
-		  action = function( index )
-		     settings.recursive = nil
-		     settings.operate_deep = true
-		     return 1
-		  end }
+-- Don't search recursively, but do operate recursively (i.e. deep copy)
+options["-R"] = {
+   action = function( opt_args )
+      settings.recursive = nil
+      settings.operate_deep = true
+   end
+}
 
-options["-d"] = { desc = "Only match directories",
-		  action = function( index )
-		     settings.dirs_only = true
-		     return 1
-		  end }
+-- Only match directories
+options["-d"] = {
+   action = function( opt_args )
+      settings.dirs_only = true
+   end
+}
 
-options["-f"] = { desc = "Only match files",
-		  action = function( index )
-		     settings.files_only = true
-		     return 1
-		  end }
+-- Only match files
+options["-f"] = {
+   action = function( opt_args )
+      settings.files_only = true
+   end
+}
 
-options["-c"] = {  desc = "Substitute captures into <transform> and "..
-		      "copy match to result",
-		   use = "<transform>",
-		   action = function( index )
-		      cur_mode = fn_modes.copy
-		      settings.dest = arg[ index + 1 ]
-		      return 2
-		   end }
+-- Copy
+options["-c"] = {
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.copy
+      if( 0 < #opt_args ) then
+	 settings.dest = opt_args[ 1 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
-options["-m"] = { desc = "Substitute captures into <transform> and "..
-		     "move/rename match to result",
-		  use = "<transform>",
-		  action = function( index )
-		     cur_mode = fn_modes.move
-		     settings.dest = arg[ index + 1 ]
-		     return 2
-		  end }
+-- Move
+options["-m"] = {
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.move
+      if( 0 < #opt_args ) then
+	 settings.dest = opt_args[ 1 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
-options["-l"] = { desc = "Substitute captures into <transform> and create a "..
-		     "hard link from match to result",
-		  use = "<transform>",
-		  action = function( index )
-		     cur_mode = fn_modes.link
-		     settings.dest = arg[ index + 1 ]
-		     return 2
-		  end }
+-- Hard link
+options["-l"] = {
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.link
+      if( 0 < #opt_args ) then
+	 settings.dest = opt_args[ 1 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
-options["-s"] = { desc = "Substitute captures into <transform> and create a "..
-		     "symbolic link from match to result",
-		  use = "<transform>",
-		  action = function( index )
-		     cur_mode = fn_modes.link
-		     settings.dest = arg[ index + 1 ]
-		     settings.symbolic = true
-		     return 2
-		  end }
+-- Symbolic link
+options["-s"] = {
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.link
+      settings.symbolic = true
+      if( 0 < #opt_args ) then
+	 settings.dest = opt_args[ 1 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
-options["--delete"] = { desc = "Substitute captures into <transform> and remove "..
-			   "resulting file or directory",
-			use = "<transform>",
-			action = function( index )
-			   cur_mode = fn_modes.remove
-			   settings.dest = arg[ index + 1 ]
-			   return 2
-			end }
+-- Remove
+options["--delete"] = {
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.remove
+      if( 0 < #opt_args ) then
+	 settings.dest = opt_args[ 1 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
-options["-e"] = { desc = "Substitute captures in each match into "..
-		     "<command> and run once per match.",
-		  use = "<command>",
-		  action = function( index )
-		     cur_mode = fn_modes.exec
-		     settings.dest = arg[ index + 1 ]
-		     return 2
-		  end }
+-- Execute once per match
+options["-e"] = {
+   min_arguments = 1,
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.exec
+      settings.dest = opt_args[ 1 ]
+   end
+}
 
-options["-E"] = { desc = "Substitute captures in each match into "..
-		     "<transform> and run <command> on all matches at once.",
-		  use = "<command> <transform>",
-		  action = function( index )
-		     cur_mode = fn_modes.exec
--- TODO		     
-		     settings.command, num = get_optional_arg( index )
-		     return num + 1
-		     
-		     settings.command = arg[ index + 1 ]
-		     settings.dest = arg[ index + 2 ]
-		     return 3
-		  end }
+-- Execute with all matches at once
+options["-E"] = {
+   min_arguments = 1,
+   max_arguments = 2,
+   action = function( opt_args )
+      cur_mode = fn_modes.exec
+      settings.command = opt_args[ 1 ]
+      if( 1 < #opt_args ) then
+	 settings.dest = opt_args[ 2 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
-options["-p"] = { desc = "Substitute captures in each match into "..
-		     "[command], if provided and display.",
-		     use = "[command]",
-		  action = function( index )
-		     cur_mode = fn_modes.exec
-		     settings.dest, num = get_optional_arg( index )
-		     return num + 1
-		  end }
-
+options["-p"] = {
+   max_arguments = 1,
+   action = function( opt_args )
+      cur_mode = fn_modes.print
+      if( 0 < #opt_args ) then
+	 settings.dest = opt_args[ 1 ]
+      else
+	 settings.dest = "%0"
+      end
+}
 
 -- TODO: Options to:
 -- * change to parent directory before executing
@@ -572,14 +599,60 @@ local paths = { }
 local i = 1
 while i <= #arg do
    print("Checking "..tostring(i)..": '"..arg[i].."'")
-   if( arg[ i ]:sub(1,1) == '-' ) then
-      local o = options[ arg[ i ] ]
-      if o then
-	 i = i + 1 + o.action( i )
+   if( arg[ i ]:sub( 1, 1 ) == '-' ) then
+      local arglist = {}
+
+      -- See if we're working with a long option or one or more short ones.
+      -- Put option(s) onto arglist to process
+      if( arg[ i ]:sub( 1, 2 ) == '--') then
+	 -- Long option, stick remainder of string on arglist
+	 arglist = { arg[ i ] }
       else
-	 print("Error: Unknown option '"..arg[ i ].."'!")
-	 os.exit(1)
+	 for o in arg[ i ]:gmatch( "." ) do
+	    arglist[ #arglist + 1 ] = '-'..o
+	 end
       end
+
+      -- move index to next item in argument list
+      i = i + 1
+
+      -- Now process each of the options we found earlier.
+      for _, elm in ipairs( arglist ) do
+	 local opt = options[ elm ]
+	 if opt then
+	    -- Capture any option arguments
+	    local opt_args = {}
+	    local max = opt.max_arguments or 0
+	    local done = ( #opt_args < max )
+	    while not done  do
+	       -- See if next argument is an option.
+	       if( arg[ i ]:sub( 1, 1 ) == '-' ) then
+		  -- If so, we're done looking for option arguments.
+		  done = true
+	       else
+		  -- If not, tack onto list and see if we've found all option
+		  -- arguments.
+		  opt_args[ #opt_args + 1 ] = arg[ i ]
+		  i = i + 1
+		  done = ( #opt_args < max )
+	       end
+	    end
+
+	    -- Make sure we've met the minimum number of option arguments
+	    local min = opt.min_arguments or 0
+	    if ( #opt_args < min ) then
+	       print("Not enough arguments for '"..elm.."'!")
+	       do_help()
+	       os.exit(1)
+	    end
+
+	    -- Handle option
+	    options[ elm ].action( opt_args )
+	 else
+	    print("Error: Unknown option '"..elm.."'!")
+	    do_help()
+	    os.exit(1)
+	 end
       
    else
       paths[ #paths + 1 ] = arg[ i ]
