@@ -45,19 +45,20 @@ end
 setmetatable(run_modes, run_modes_mt)
 
 -- Forward declarations of global-ish variables
-local settings
+local settings = {}
 local options = {}
 local showMsgs = {}
+local paths = {}
 local transform
 
 -- Define helper functions
 
--- Attempts to match the specified pathname against settings.SRC. If it matches,
+-- Attempts to match the specified pathname against settings.src. If it matches,
 -- returns a table of matched elements, or nil otherwise.
 local function match_pathname(path)
-   -- Attempt to match specified path to specified SRC string and put
+   -- Attempt to match specified path to specified src string and put
    -- result into a table.
-   local elms = { string.match( path, settings.SRC ) }
+   local elms = { string.match( path, settings.src ) }
 
    -- No match, so just return.
    if #elms == 0 then
@@ -88,9 +89,9 @@ end
 
 -- Default SRC -> DEST transform
 -- Receives a table, v, of elements form the pattern match and substitutes
--- those values into settings.DEST.
+-- those values into settings.dest.
 local function default_transform(v)
-   return string.gsub( settings.DEST, "%%(%d)", v )
+   return string.gsub( settings.dest, "%%(%d)", v )
 end
 -- Set default transform
 transform = default_transform
@@ -184,53 +185,53 @@ local function exec_item(src, dest)
    end
 end
 
--- -- Create a table to mode-specific settings.
--- -- Override __index to create a default mode.
--- local single_command = function ( parser ) return parser; end;
--- local fn_modes = {}
--- fn_modes.copy = {
---    desc = "Copy with Lua pattern matching",
---    parsers = { copy = single_command },
---    file_action=copy_file,
--- };
--- fn_modes.move = {
---    desc = "Move with Lua pattern matching",
---    parsers = { move = single_command },
---    file_action=move_item,
--- };
--- fn_modes.link = {
---    desc = "Create links with Lua pattern matching",
---    parsers = { link = single_command },
---    file_action=link_item,
--- };
--- fn_modes.remove = {
---    desc = "Remove files and directories with Lua pattern matching",
---    parsers = { remove = single_command },
---    file_action=link_item,
--- };
--- fn_modes.exec = {
---    desc = "Find and Execute with Lua pattern matching",
---    parsers = { exec = single_command },
---    file_action=exec_item,
--- };
--- -- Default case. Create a new parser for each mode.
--- fn_modes_mt = {}
--- fn_modes_mt.__index = function(table,key)
---    local ret_val_mt = {}
---    ret_val_mt.__index = function(table, key)
---       return function ( parser )
--- 	 return parser:command(key, fn_modes[key]["description"])
---       end
---    end
---    local ret_val = {}
---    setmetatable(ret_val, ret_val_mt)
+-- Create a table to mode-specific settings.
+-- Override __index to create a default mode.
+local single_command = function ( parser ) return parser; end;
+local fn_modes = {}
+fn_modes.copy = {
+   desc = "Copy with Lua pattern matching",
+   parsers = { copy = single_command },
+   file_action=copy_file,
+};
+fn_modes.move = {
+   desc = "Move with Lua pattern matching",
+   parsers = { move = single_command },
+   file_action=move_item,
+};
+fn_modes.link = {
+   desc = "Create links with Lua pattern matching",
+   parsers = { link = single_command },
+   file_action=link_item,
+};
+fn_modes.remove = {
+   desc = "Remove files and directories with Lua pattern matching",
+   parsers = { remove = single_command },
+   file_action=link_item,
+};
+fn_modes.exec = {
+   desc = "Find and Execute with Lua pattern matching",
+   parsers = { exec = single_command },
+   file_action=exec_item,
+};
+-- Default case. Create a new parser for each mode.
+fn_modes_mt = {}
+fn_modes_mt.__index = function(table,key)
+   local ret_val_mt = {}
+   ret_val_mt.__index = function(table, key)
+      return function ( parser )
+	 return parser:command(key, fn_modes[key]["description"])
+      end
+   end
+   local ret_val = {}
+   setmetatable(ret_val, ret_val_mt)
 
---    return {
---       desc = "Tool to move/copy/link files with Lua pattern matching",
---       parsers = ret_val,
---    }
--- end
--- setmetatable(fn_modes, fn_modes_mt)
+   return {
+      desc = "Tool to move/copy/link files with Lua pattern matching",
+      parsers = ret_val,
+   }
+end
+setmetatable(fn_modes, fn_modes_mt)
 
 -- local cur_mode = fn_modes[run_modes[run_as]["command"]]
 
@@ -275,15 +276,8 @@ local function handle_dir(dir_names)
    end
 end
 
--- Checks the next command-line argument to see if it is another option.
--- If not, it is extracted and returned. Also returns the 0 if next argument
--- is a command-line option or 1 if it is an option argument.
-local function get_optional_arg( index )
-   if( arg[ index ]:sub(1,1) == '-' ) then
-      return nil, 0
-   else
-      return arg[ index ], 1
-   end
+local function do_help()
+   print "To do!"
 end
 
 -- Define table of command-line arguments. Format:
@@ -382,6 +376,7 @@ options["-c"] = {
       else
 	 settings.dest = "%0"
       end
+   end
 }
 
 -- Move
@@ -394,6 +389,7 @@ options["-m"] = {
       else
 	 settings.dest = "%0"
       end
+   end
 }
 
 -- Hard link
@@ -401,11 +397,13 @@ options["-l"] = {
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.link
+      settings.symbolic = false
       if( 0 < #opt_args ) then
 	 settings.dest = opt_args[ 1 ]
       else
 	 settings.dest = "%0"
       end
+   end
 }
 
 -- Symbolic link
@@ -419,6 +417,14 @@ options["-s"] = {
       else
 	 settings.dest = "%0"
       end
+   end
+}
+
+-- Use absolute path of each match
+options["-a"] = {
+   action = function( opt_args )
+      settings.absolute = true
+   end
 }
 
 -- Remove
@@ -431,6 +437,7 @@ options["--delete"] = {
       else
 	 settings.dest = "%0"
       end
+   end
 }
 
 -- Execute once per match
@@ -455,6 +462,7 @@ options["-E"] = {
       else
 	 settings.dest = "%0"
       end
+   end
 }
 
 options["-p"] = {
@@ -466,6 +474,18 @@ options["-p"] = {
       else
 	 settings.dest = "%0"
       end
+   end
+}
+
+-- Specify starting search path(s)
+options["-P"] = {
+   min_arguments = 1,
+   max_arguments = 99,
+   action = function( opt_args )
+      for _, p in ipairs( opt_args ) do
+	 paths[ #paths + 1 ] = p
+      end
+   end
 }
 
 -- TODO: Options to:
@@ -595,7 +615,6 @@ options["-p"] = {
 
 -- Handle Arguments
 -- TODO: Need to be able to combine short args
-local paths = { }
 local i = 1
 while i <= #arg do
    print("Checking "..tostring(i)..": '"..arg[i].."'")
@@ -608,7 +627,7 @@ while i <= #arg do
 	 -- Long option, stick remainder of string on arglist
 	 arglist = { arg[ i ] }
       else
-	 for o in arg[ i ]:gmatch( "." ) do
+	 for o in arg[ i ]:sub( 2 ):gmatch( "." ) do
 	    arglist[ #arglist + 1 ] = '-'..o
 	 end
       end
@@ -623,7 +642,7 @@ while i <= #arg do
 	    -- Capture any option arguments
 	    local opt_args = {}
 	    local max = opt.max_arguments or 0
-	    local done = ( #opt_args < max )
+	    local done = ( max <= #opt_args ) or ( #arg < i )
 	    while not done  do
 	       -- See if next argument is an option.
 	       if( arg[ i ]:sub( 1, 1 ) == '-' ) then
@@ -634,7 +653,7 @@ while i <= #arg do
 		  -- arguments.
 		  opt_args[ #opt_args + 1 ] = arg[ i ]
 		  i = i + 1
-		  done = ( #opt_args < max )
+		  done = ( max <= #opt_args ) or ( #arg < i )
 	       end
 	    end
 
@@ -653,27 +672,26 @@ while i <= #arg do
 	    do_help()
 	    os.exit(1)
 	 end
-      
+      end
    else
-      paths[ #paths + 1 ] = arg[ i ]
+      settings.src = arg[ i ]
       i = i + 1
    end
+end
+
+-- If no paths specified, assume we start in current one.
+if #paths <= 0 then
+   paths = {'.'}
 end
 
 -- debug
 print("[Begin Debug]")
 for k,v in pairs(arg) do print("\t"..k..": '"..tostring(v).."'") end
 print("----")
-do
-local tmp = {}
-for k,v in pairs(showMsgs) do tmp[ #tmp + 1] = k end
-print(table.concat(tmp,","))
-end
+for k,v in pairs(settings) do print("\t"..k..": '"..tostring(v).."'") end
+print("Searching:")
+for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
 print("[End Debug]")
 
 -- Crawl specified directories
-if #paths <= 0 then
-   paths = {'.'}
-end
-
---handle_dir(paths)
+handle_dir(paths)
