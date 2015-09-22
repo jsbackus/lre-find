@@ -147,7 +147,7 @@ end
 
 local function remove_item(src, dest)
    if( settings.verbose ) then
-      print("rm '"..src.."'")
+      print("rm '"..dest.."'")
    end
    if( settings.dry_run ) then
       return
@@ -157,7 +157,7 @@ local function remove_item(src, dest)
       print("Interactive mode not implemented!")
       return
    end
-   os.remove( src )
+   os.remove( dest )
 end
 
 local function exec_item(src, dest)
@@ -211,7 +211,7 @@ fn_modes.link = {
 fn_modes.remove = {
    desc = "Remove files and directories with Lua pattern matching",
    parsers = { remove = single_command },
-   file_action=link_item,
+   file_action=remove_item,
 };
 fn_modes.exec = {
    desc = "Find and Execute with Lua pattern matching",
