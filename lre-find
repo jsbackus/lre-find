@@ -271,7 +271,7 @@ fn_modes_mt.__index = function(table,key)
 end
 setmetatable(fn_modes, fn_modes_mt)
 
--- local cur_mode = fn_modes[run_modes[run_as]["command"]]
+local cur_mode = fn_modes[run_modes[run_as]["command"]]
 
 local function handle_dir(dir_names)
    local idx = 1;
