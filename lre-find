@@ -172,13 +172,20 @@ local function exec_item(src, dest)
       return;
    end
 
-   bOk, result, code = os.execute( dest );
-   if( bOk == nil ) then
-      print("Error: unable to execute '"..dest.."'!")
-      return;
-   end
-   if( settings.verbose ) then
-      print(" => "..result.." ("..code..")");
+   -- See if we are saving all matches for one run or doing one at a time.
+   if( settings.command ) then
+      -- If we're queuing, add match to queue
+      settings.command[ #settings.command + 1 ] = dest
+   else
+      -- Otherwise, execute command
+      bOk, result, code = os.execute( dest );
+      if( bOk == nil ) then
+	 print("Error: unable to execute '"..dest.."'!")
+	 return;
+      end
+      if( settings.verbose ) then
+	 print(" => "..result.." ("..code..")");
+      end
    end
 end
 
@@ -453,12 +460,13 @@ options["-E"] = {
    max_arguments = 2,
    action = function( opt_args )
       cur_mode = fn_modes.exec
-      settings.command = opt_args[ 1 ]
+      settings.command = { opt_args[ 1 ] }
       if( 1 < #opt_args ) then
 	 settings.dest = opt_args[ 2 ]
       else
 	 settings.dest = "%0"
       end
+      settings.command_args = {}
    end
 }
 
@@ -584,3 +592,11 @@ print("[End Debug]")
 
 -- Crawl specified directories
 handle_dir(paths)
+
+-- If we are in exec-all-matches-at-once mode, then build string to execute and
+-- stuff into one string, then call the exec action on it.
+if( settings.command ) then
+   local dest = table.concat( settings.command, " " )
+   settings.command = nil
+   exec_item( "", dest )
+end
