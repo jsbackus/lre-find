@@ -53,6 +53,37 @@ local transform
 
 -- Define helper functions
 
+-- Implements verbose, interactive, and dry-run modes. Action function is
+-- responsible for providing suitable display string. Returns true if okay
+-- to continue or nil if caller should return without attempting action.
+local function action_prompt( command )
+   local out
+   if( settings.verbose or settings.interactive ) then
+      out = io.output()
+      out:write(command)
+      if( settings.interactive ) then
+	 out:write('? ')
+      end
+      out:close()
+   end
+
+   if( settings.interactive ) then
+      local response = io.read()
+      if( response:lower() == "y" ) then
+	 return true
+      else
+	 return nil
+      end
+   else
+      print("")
+   end
+   
+   if( settings.dry_run ) then
+      return nil
+   end
+
+end
+
 -- Attempts to match the specified pathname against settings.src. If it matches,
 -- returns a table of matched elements, or nil otherwise.
 local function match_pathname(path)
@@ -97,45 +128,50 @@ local function link_item(src, dest)
    if( settings.symbolic and settings.absolute ) then
       src = lfs.currentdir().."/"..src
    end
-   if( settings.verbose ) then
-      local cmd = "ln"
-      if( settings.symbolic ) then
-	 cmd = cmd.." -s"
-      end
-      print(cmd.." '"..src.."' '"..dest.."'")
+   
+   local cmd = "ln"
+   if( settings.symbolic ) then
+      cmd = cmd.." -s"
    end
-   if( settings.dry_run ) then
+   if( not action_prompt(cmd.." '"..src.."' '"..dest.."'") ) then
       return
    end
 
-   ok, msg, code = lfs.link( src, dest, settings.symbolic )
+   local ok, msg, code = lfs.link( src, dest, settings.symbolic )
    if( ok == nil ) then
-      print("Error creating link from '"..src.."' to '"..dest.."': "..msg)
+      print("   Error creating link from '"..src.."' to '"..dest.."': "..msg)
    end
 end
 
 local function move_item(src, dest)
-   if( settings.verbose ) then
-      print("mv '"..src.."' '"..dest.."'")
-   end
-   if( settings.dry_run ) then
+   if( not action_prompt("mv '"..src.."' '"..dest.."'") ) then
       return
    end
-   os.rename( src, dest )
+   local ok, msg = os.rename( src, dest )
+   if( ok == nil ) then
+      print("   Error renaming '"..src.."' to '"..dest.."': "..msg)
+   end
 end
 
 local function copy_file(src, dest)
-
-   if( settings.verbose ) then
-      print("cp '"..src.."' '"..dest.."'")
-   end
-   if( settings.dry_run ) then
+   if( not action_prompt("cp '"..src.."' '"..dest.."'") ) then
       return
    end
    
    local BUFSIZE = 2^20 -- 1MB at a time
-   local fin = assert(io.open(src, "rb"))
-   local fout = assert(io.open(dest, "wb"))
+   local fin, fout, msg
+   fin, msg = io.open(src, "rb")
+   if( fin == nil ) then
+      print("   Error reading from '"..src.."': "..msg)
+      return
+   end
+
+   fout, msg = io.open(dest, "wb")
+   if( fin == nil ) then
+      print("   Error writing to '"..dest.."': "..msg)
+      return
+   end
+
    while true do
       local bytes = fin:read(BUFSIZE)
       if not bytes then break end
@@ -146,30 +182,19 @@ local function copy_file(src, dest)
 end
 
 local function remove_item(src, dest)
-   if( settings.verbose ) then
-      print("rm '"..dest.."'")
-   end
-   if( settings.dry_run ) then
+   if( not action_prompt("rm '"..dest.."'") ) then
       return
    end
 
-   if( settings.interactive ) then
-      print("Interactive mode not implemented!")
-      return
+   local ok, msg = os.remove( dest )
+   if( ok == nil ) then
+      print("   Error removing '"..dest.."': "..msg)
    end
-   os.remove( dest )
 end
 
 local function exec_item(src, dest)
-   local out
-   if( settings.verbose ) then
-      out = io.output();
-      out:write("'"..dest.."'");
-      out:close();
-   end
-   if( settings.dry_run ) then
-      print("");
-      return;
+   if( not action_prompt("'"..dest.."'") ) then
+      return
    end
 
    -- See if we are saving all matches for one run or doing one at a time.
@@ -184,7 +209,7 @@ local function exec_item(src, dest)
 	 return;
       end
       if( settings.verbose ) then
-	 print(" => "..result.." ("..code..")");
+	 print("   Returned: "..result.." ("..code..")");
       end
    end
 end
