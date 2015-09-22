@@ -77,10 +77,7 @@ local function match_pathname(path)
    end
    
    for i = 1, #elms do
-      if settings.lua then
-	 map[ t(i) ] = elms[ i ]
-      else
-      end
+      map[ t(i) ] = elms[ i ]
    end
    map[ t(0) ] = path
 
