@@ -214,6 +214,10 @@ local function exec_item(src, dest)
    end
 end
 
+local function print_item(src, dest)
+   print( dest )
+end
+
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
 local single_command = function ( parser ) return parser; end;
@@ -242,6 +246,11 @@ fn_modes.exec = {
    desc = "Find and Execute with Lua pattern matching",
    parsers = { exec = single_command },
    file_action=exec_item,
+};
+fn_modes.print = {
+   desc = "Copy with Lua pattern matching",
+   parsers = { print = single_command },
+   file_action=print_item,
 };
 -- Default case. Create a new parser for each mode.
 fn_modes_mt = {}
