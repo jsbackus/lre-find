@@ -705,7 +705,16 @@ print("----")
 for k,v in pairs(settings) do print("\t"..k..": '"..tostring(v).."'") end
 print("Searching:")
 for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
+print("----")
+print("Screen Width: "..screen_width)
 print("[End Debug]")
+
+if( (settings.src == nil) or (#settings.src == 0) ) then
+   print("Please specify a pattern to match!")
+   print()
+   do_help()
+   os.exit(1)
+end
 
 -- Crawl specified directories
 handle_dir(paths)
