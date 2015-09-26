@@ -27,8 +27,41 @@ local copyright = " v" .. version .. " Copyright (C) 2015 Jeff Backus";
 
 local lfs = require "lfs";
 
+-- Put filesystem delimiter into a global variable for later.
+local fs_delim = package.config:sub(1,1)
+
 -- Figure out how we were invoked
-local run_as = string.match(arg[0], "([^/]+)$");
+local run_as = arg[0]:match("([^"..fs_delim.."]+)$");
+
+-- Attempt to determine the display size on POSIX-compatible systems. On
+-- non-POSIX-compatible systems, assume a default value.
+local screen_width = 80
+do
+   -- Create a function to attempt to open a program, read the first line
+   -- of output and return it.
+   local function try( cmd )
+      local fin = io.popen( cmd )
+      if fin then
+	 local t = fin:read()
+	 fin:close()
+	 return t
+      else
+	 return
+      end
+   end
+   
+   -- First, attempt to use tput, which is probably in the ncurses package...
+   local bOk, result, code = pcall( try, "/usr/bin/env tput cols" )
+   if( bOk ) then
+      screen_width = tonumber(result) or screen_width
+   else
+      -- Nope, try stty. We want the second argument.
+      bOk, result, code = pcall( try, "/usr/bin/env stty size" )
+      if( bOk ) then
+	 screen_width = tonumber(result:match("(%d+)$")) or screen_width
+      end
+   end
+end
 
 -- Create a table to handle different options for how we are started
 -- Override __index to create a default case.
@@ -203,7 +236,7 @@ local function exec_item(src, dest)
       settings.command[ #settings.command + 1 ] = dest
    else
       -- Otherwise, execute command
-      bOk, result, code = os.execute( dest );
+      local bOk, result, code = os.execute( dest )
       if( bOk == nil ) then
 	 print("Error: unable to execute '"..dest.."'!")
 	 return;
@@ -314,14 +347,23 @@ local function handle_dir(dir_names)
    end
 end
 
+local function print_version()
+   print(run_as..copyright)   
+end
+
+
 local function do_help()
-   print "To do!"
+   print("Usage: "..run_as.." <pattern> [options]")
+   print()
+   print("Searches the filesystem for files/directories matching <pattern>")
+   
+   print_version()
 end
 
 -- Define table of command-line arguments. Format:
 -- "argument" = {
 --   desc = "description",
---   params = { param1 = "desc", ... paramN = "desc" }
+--   args = "<arg1> <arg2>"
 --   action = function( index ) return next_index end
 -- }
 -- 
@@ -330,6 +372,7 @@ end
 options = {}
 
 options["--help"] = {
+   desc = "Display this screen.",
    action = function( opt_args )
       do_help()
       os.exit(0)
@@ -337,8 +380,9 @@ options["--help"] = {
 }
 
 options["--version"] = {
+   desc = "Display version information and exit.",
    action = function( opt_args )
-      print(run_as..copyright)
+      print_version()
       os.exit(0)
    end
 }
@@ -355,12 +399,14 @@ options["--version"] = {
 -- 		  end }
 
 options["-v"] = {
+   desc = "Print each action as it is taken.",
    action = function( opt_args )
       settings.verbose = true
    end
 }
 
 options["--dry-run"] = {
+   desc = "Only display actions, don't actually perform them. Implies -v.",
    action = function( opt_args )
       settings.dry_run = true
       settings.verbose = true
@@ -369,13 +415,15 @@ options["--dry-run"] = {
 
 -- Interactive mode
 options["-i"] = {
+   desc = "Prompt before each action.",
    action = function( opt_args )
       settings.interactive = true
    end
 }
 
 -- Search and operate recursively
-options["-r"] = { 
+options["-r"] = {
+   desc = "Search recursively.",
    action = function( opt_args )
       settings.recursive = true
       settings.operate_deep = true
@@ -384,6 +432,7 @@ options["-r"] = {
 
 -- Don't search recursively, but do operate recursively (i.e. deep copy)
 options["-R"] = {
+   desc = "Don't search recursively, but still operate recursively.",
    action = function( opt_args )
       settings.recursive = nil
       settings.operate_deep = true
@@ -392,6 +441,7 @@ options["-R"] = {
 
 -- Only match directories
 options["-d"] = {
+   desc = "Only match directories.",
    action = function( opt_args )
       settings.dirs_only = true
    end
@@ -399,6 +449,7 @@ options["-d"] = {
 
 -- Only match files
 options["-f"] = {
+   desc = "Only match files.",
    action = function( opt_args )
       settings.files_only = true
    end
@@ -406,6 +457,9 @@ options["-f"] = {
 
 -- Copy
 options["-c"] = {
+   args = "[transform]",
+   desc = "Substitute all captures from specified match string into "..
+   "[transform], then copy match to result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.copy
@@ -419,6 +473,9 @@ options["-c"] = {
 
 -- Move
 options["-m"] = {
+   args = "[transform]",
+   desc = "Substitute all captures from specified match string into "..
+   "[transform], then move match to result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.move
@@ -432,6 +489,10 @@ options["-m"] = {
 
 -- Hard link
 options["-l"] = {
+   args = "[transform]",
+   desc = "Substitute all captures from specified match string into "..
+   "[transform], then create a hard link from match to result. [transform] "..
+      "defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.link
@@ -446,6 +507,10 @@ options["-l"] = {
 
 -- Symbolic link
 options["-s"] = {
+   args = "[transform]",
+   desc = "Substitute all captures from specified match string into "..
+   "[transform], then create a symbolic link from match to result. "..
+      "[transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.link
@@ -460,6 +525,7 @@ options["-s"] = {
 
 -- Use absolute path of each match
 options["-a"] = {
+   desc = "Use absolute path when matching.",
    action = function( opt_args )
       settings.absolute = true
    end
@@ -467,6 +533,9 @@ options["-a"] = {
 
 -- Remove
 options["--delete"] = {
+   args = "[transform]",
+   desc = "Substitute all captures from specified match string into "..
+   "[transform], then deletes the result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.remove
@@ -480,6 +549,10 @@ options["--delete"] = {
 
 -- Execute once per match
 options["-e"] = {
+   args = "<transform>",
+   desc = "Substitute all captures from specified match string into "..
+   "<transform>, then attempt to execute the result as a shell command, "..
+      "each match executed separately.",
    min_arguments = 1,
    max_arguments = 1,
    action = function( opt_args )
@@ -490,6 +563,11 @@ options["-e"] = {
 
 -- Execute with all matches at once
 options["-E"] = {
+   args = "<command> [transform]",
+   desc = "Substitute all captures from specified match string into "..
+      "[transform] and append to <command>, in order elements are found. "..
+   "Result is executed as a shell command at end of search. [transform] "..
+      "defaults to %0.",
    min_arguments = 1,
    max_arguments = 2,
    action = function( opt_args )
@@ -506,6 +584,9 @@ options["-E"] = {
 
 -- Print
 options["-p"] = {
+   args = "[transform]",
+   desc = "Substitute all captures from specified match string into "..
+   "[transform], and display result to SDOUT. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
       cur_mode = fn_modes.print
@@ -519,6 +600,8 @@ options["-p"] = {
 
 -- Specify starting search path(s)
 options["-P"] = {
+   args = "<dir1> [dir2] ... [dirN]",
+   desc = "Search the specified directory/ies.",
    min_arguments = 1,
    max_arguments = 99,
    action = function( opt_args )
@@ -529,11 +612,11 @@ options["-P"] = {
 }
 
 -- Interpret DEST as Lua code
-options["-L"] = {
-   action = function( opt_args )
-      settings.lua = true
-   end
-}
+-- options["-L"] = {
+--    action = function( opt_args )
+--       settings.lua = true
+--    end
+-- }
 
 -- TODO: Options to:
 -- * change to parent directory before executing
