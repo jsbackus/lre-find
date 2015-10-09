@@ -368,6 +368,19 @@ local function handle_dir(dir_names)
    end
 end
 
+local function handle_stdin()
+   local line
+   local done
+   while not done do
+      line = io.read()
+      if line then
+	 coroutine.yield(line)
+      else
+	 done = true
+      end
+   end
+end
+
 local function print_version()
    print(run_as..copyright)   
 end
@@ -629,6 +642,13 @@ options["-P"] = {
       for _, p in ipairs( opt_args ) do
 	 paths[ #paths + 1 ] = p
       end
+   end
+}
+
+options["--"] = {
+   desc = "Take list of items from STDIN (instead of crawling a directory tree)",
+   action = function( opt_args )
+      settings.use_stdin = true
    end
 }
 
