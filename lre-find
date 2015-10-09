@@ -253,37 +253,47 @@ end
 
 -- Create a table to mode-specific settings.
 -- Override __index to create a default mode.
+local debug_dir_command = function( pathname, newname )
+   print("Directory '"..pathname.."' -> '"..newname.."'")
+end
+
 local single_command = function ( parser ) return parser; end;
 local fn_modes = {}
 fn_modes.copy = {
    desc = "Copy with Lua pattern matching",
    parsers = { copy = single_command },
    file_action=copy_file,
+   dir_action=debug_dir_command,
 };
 fn_modes.move = {
    desc = "Move with Lua pattern matching",
    parsers = { move = single_command },
    file_action=move_item,
+   dir_action=move_item,
 };
 fn_modes.link = {
    desc = "Create links with Lua pattern matching",
    parsers = { link = single_command },
    file_action=link_item,
+   dir_action=link_item,
 };
 fn_modes.remove = {
    desc = "Remove files and directories with Lua pattern matching",
    parsers = { remove = single_command },
    file_action=remove_item,
+   dir_action=debug_dir_command,
 };
 fn_modes.exec = {
    desc = "Find and Execute with Lua pattern matching",
    parsers = { exec = single_command },
    file_action=exec_item,
+   dir_action=exec_item,
 };
 fn_modes.print = {
    desc = "Copy with Lua pattern matching",
    parsers = { print = single_command },
    file_action=print_item,
+   dir_action=print_item,
 };
 -- Default case. Create a new parser for each mode.
 fn_modes_mt = {}
@@ -307,42 +317,37 @@ setmetatable(fn_modes, fn_modes_mt)
 local cur_mode = fn_modes[run_modes[run_as]["command"]]
 
 local function handle_dir(dir_names)
-   local idx = 1;
-   while( idx <= #dir_names ) do
-      local dir_name = dir_names[idx];
+   local idx = 1
+   local list_end = #dir_names + 1
+   while( dir_names[ idx ] ) do
+      local dir_name = dir_names[ idx ]
       for dir_obj in lfs.dir(dir_name) do
+
 	 pathname = dir_obj
 	 if( dir_name ~= '.' ) then
-	    pathname = dir_name.."/"..pathname;
+	    pathname = dir_name.."/"..pathname
 	 end
 
-         attrs = lfs.attributes(pathname);
+         attrs = lfs.attributes(pathname)
 
-	 -- Attempt to match against SRC
-	 elements = match_pathname( pathname )
-	 if elements then
-	    newname = transform( elements )
-	 else
-	    newname = nil
-	 end
+	 -- Share our result
+	 coroutine.yield( pathname )
 
 	 if( attrs.mode == "directory" and
 	     dir_obj ~= '.' and dir_obj ~= '..' ) then
 	    
 	    -- Append to end of list if recursive mode enabled.
 	    if( settings.recursive ) then
-	       dir_names[ #dir_names + 1 ] = pathname
-	    end
-	    if( settings.files_only == nil ) then
-	       -- todo
-	       print("Handling directory '"..pathname.."'")
-	    end
-	 elseif( attrs.mode == "file" ) then
-	    if( settings.dirs_only == nil and newname ~= nil ) then
-	       cur_mode.file_action( pathname, newname )
+	       dir_names[ list_end ] = pathname
+	       list_end = list_end + 1
 	    end
 	 end
       end
+      
+      -- Efficiently remove this item from the list
+      dir_names[ idx ] = nil
+      
+      -- Increment pointer
       idx = idx + 1
    end
 end
@@ -625,7 +630,7 @@ options["-P"] = {
 -- Handle Arguments
 local i = 1
 while i <= #arg do
-   print("Checking "..tostring(i)..": '"..arg[i].."'")
+print("Checking "..tostring(i)..": '"..arg[i].."'")
    if( arg[ i ]:sub( 1, 1 ) == '-' ) then
       local arglist = {}
 
@@ -708,6 +713,7 @@ for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
 print("----")
 print("Screen Width: "..screen_width)
 print("[End Debug]")
+-- End debug
 
 if( (settings.src == nil) or (#settings.src == 0) ) then
    print("Please specify a pattern to match!")
@@ -716,8 +722,33 @@ if( (settings.src == nil) or (#settings.src == 0) ) then
    os.exit(1)
 end
 
--- Crawl specified directories
-handle_dir(paths)
+-- Wrap a coroutine around the appropriate iterator
+if( settings.use_stdin ) then
+   searcher = coroutine.wrap(function() handle_stdin() end)
+else
+   searcher = coroutine.wrap(function() handle_dir(paths) end)
+end
+
+-- Process the output of the iterator
+for pathname in searcher do
+   local attrs = lfs.attributes(pathname);
+   
+   -- Attempt to match against SRC
+   local elements = match_pathname( pathname )
+   local newname
+   if elements then
+      newname = transform( elements )
+   end
+
+   -- Call appropriate handler if we have a match
+   if( newname ~= nil ) then
+      if( attrs.mode == "directory" and settings.files_only == nil ) then
+	 cur_mode.dir_action( pathname, newname )
+      elseif( attrs.mode == "file" and settings.dirs_only == nil ) then
+	 cur_mode.file_action( pathname, newname )
+      end
+   end
+end
 
 -- If we are in exec-all-matches-at-once mode, then build string to execute and
 -- stuff into one string, then call the exec action on it.
