@@ -108,13 +108,16 @@ local function action_prompt( command )
 	 return nil
       end
    else
-      print("")
+      if( settings.verbose or settings.interactive ) then
+	 print("")
+      end
    end
    
    if( settings.dry_run ) then
       return nil
    end
 
+   return true
 end
 
 -- Attempts to match the specified pathname against settings.src. If it matches,
@@ -747,6 +750,7 @@ for k,v in pairs(settings) do print("\t"..k..": '"..tostring(v).."'") end
 print("Searching:")
 for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
 print("----")
+print("Mode: " .. cur_mode.desc)
 print("Screen Width: "..screen_width)
 print("[End Debug]")
 -- End debug
