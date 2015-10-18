@@ -102,9 +102,7 @@ local function action_prompt( command )
 
    if( settings.interactive ) then
       local response = io.read()
-      if( response:lower() == "y" ) then
-	 return true
-      else
+      if( response:lower() ~= "y" ) then
 	 return nil
       end
    else
