@@ -338,6 +338,9 @@ local function handle_dir(dir_names)
    idx = 1
    while( dir_names[ idx ] ) do
       local dir_name = dir_names[ idx ]
+      if showMsgs.paths then
+	 print("Searching '"..dir_name.."'...")
+      end
       for dir_obj in lfs.dir(dir_name) do
 
 	 local pathname = dir_obj
@@ -422,16 +425,16 @@ options["--version"] = {
    end
 }
 
--- options["-D"] = { desc = "Displays debug information",
--- 		  params = { debugoptions = "Comma-delimited list of debug " ..
--- 				"options to turn on" },
--- 		  action = function( index )
--- 		     for i in arg[ index + 1 ]:gmatch("([^,]+)") do
--- 			print("Setting "..i)
--- 			showMsgs[ i ] = true
--- 		     end
--- 		     return 1
--- 		  end }
+options["-D"] = {
+   desc = "Displays debug information. Takes a comma-delimited list of debug options",
+   min_arguments = 1,
+   max_arguments = 1,
+   action = function( opt_args )
+      for i in opt_args[ 1 ]:gmatch("([^,]+)") do
+	 showMsgs[ i ] = true
+      end
+   end
+}
 
 options["-v"] = {
    desc = "Print each action as it is taken.",
@@ -667,7 +670,7 @@ options["--"] = {
 -- Handle Arguments
 local i = 1
 while i <= #arg do
-print("Checking "..tostring(i)..": '"..arg[i].."'")
+--print("Checking "..tostring(i)..": '"..arg[i].."'")
    if( arg[ i ]:sub( 1, 1 ) == '-' ) then
       local arglist = {}
 
@@ -741,16 +744,19 @@ if settings.lua then
 end
 
 -- debug
-print("[Begin Debug]")
-for k,v in pairs(arg) do print("\t"..k..": '"..tostring(v).."'") end
-print("----")
-for k,v in pairs(settings) do print("\t"..k..": '"..tostring(v).."'") end
-print("Searching:")
-for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
-print("----")
-print("Mode: " .. cur_mode.desc)
-print("Screen Width: "..screen_width)
-print("[End Debug]")
+if showMsgs.args then
+   print("[Begin Debug]")
+   for k,v in pairs(arg) do print("\t"..k..": '"..tostring(v).."'") end
+   print("----")
+   for k,v in pairs(settings) do print("\t"..k..": '"..tostring(v).."'") end
+   print("Searching:")
+   for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
+   print("----")
+   print("Mode: " .. cur_mode.desc)
+   print("Screen Width: "..screen_width)
+   print("[End Debug]")
+   print("")
+end
 -- End debug
 
 if( (settings.src == nil) or (#settings.src == 0) ) then
