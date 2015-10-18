@@ -82,6 +82,7 @@ local settings = {}
 local options = {}
 local showMsgs = {}
 local paths = {}
+local actions = {}
 local transform
 
 -- Define helper functions
@@ -500,12 +501,13 @@ options["-c"] = {
    "[transform], then copy match to result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.copy
+      local dest
       if( 0 < #opt_args ) then
-	 settings.dest = opt_args[ 1 ]
+	 dest = opt_args[ 1 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
+      actions[ #actions ] = { "action" = fn_modes.copy, "dest" = dest }
    end
 }
 
@@ -516,12 +518,13 @@ options["-m"] = {
    "[transform], then move match to result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.move
+      local dest
       if( 0 < #opt_args ) then
-	 settings.dest = opt_args[ 1 ]
+	 dest = opt_args[ 1 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
+      actions[ #actions ] = { "action" = fn_modes.move, "dest" = dest }
    end
 }
 
@@ -533,7 +536,7 @@ options["-l"] = {
       "defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.link
+      actions[ #actions ] = fn_modes.link
       settings.symbolic = false
       if( 0 < #opt_args ) then
 	 settings.dest = opt_args[ 1 ]
@@ -551,7 +554,7 @@ options["-s"] = {
       "[transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.link
+      actions[ #actions ] = fn_modes.link
       settings.symbolic = true
       if( 0 < #opt_args ) then
 	 settings.dest = opt_args[ 1 ]
@@ -576,7 +579,7 @@ options["--delete"] = {
    "[transform], then deletes the result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.remove
+      actions[ #actions ] = fn_modes.remove
       if( 0 < #opt_args ) then
 	 settings.dest = opt_args[ 1 ]
       else
@@ -594,7 +597,7 @@ options["-e"] = {
    min_arguments = 1,
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.exec
+      actions[ #actions ] = fn_modes.exec
       settings.dest = opt_args[ 1 ]
    end
 }
@@ -609,7 +612,7 @@ options["-E"] = {
    min_arguments = 1,
    max_arguments = 2,
    action = function( opt_args )
-      cur_mode = fn_modes.exec
+      actions[ #actions ] = fn_modes.exec
       settings.command = { opt_args[ 1 ] }
       if( 1 < #opt_args ) then
 	 settings.dest = opt_args[ 2 ]
@@ -627,7 +630,7 @@ options["-p"] = {
    "[transform], and display result to SDOUT. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      cur_mode = fn_modes.print
+      actions[ #actions ] = fn_modes.print
       if( 0 < #opt_args ) then
 	 settings.dest = opt_args[ 1 ]
       else
@@ -787,9 +790,13 @@ for pathname in searcher do
    -- Call appropriate handler if we have a match
    if( newname ~= nil ) then
       if( attrs.mode == "directory" and settings.files_only == nil ) then
-	 cur_mode.dir_action( pathname, newname )
+	 for _, mode in ipairs( actions ) do
+	    mode.dir_action( pathname, newname )
+	 end
       elseif( attrs.mode == "file" and settings.dirs_only == nil ) then
-	 cur_mode.file_action( pathname, newname )
+	 for _, mode in ipairs( actions ) do
+	    mode.file_action( pathname, newname )
+	 end
       end
    end
 end
