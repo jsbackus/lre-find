@@ -84,6 +84,7 @@ local showMsgs = {}
 local paths = {}
 local actions = {}
 local transform
+local cur_mode
 
 -- Define helper functions
 
@@ -154,25 +155,25 @@ end
 -- Receives a table, v, of elements form the pattern match and substitutes
 -- those values into settings.dest.
 local function default_transform(v)
-   return string.gsub( settings.dest, "%%(%d)", v )
+   return string.gsub( cur_mode.dest, "%%(%d)", v )
 end
 -- Set default transform
 transform = default_transform
 
 local function link_item(src, dest)
-   if( settings.symbolic and settings.absolute ) then
+   if( cur_mode.symbolic and settings.absolute ) then
       src = lfs.currentdir().."/"..src
    end
    
    local cmd = "ln"
-   if( settings.symbolic ) then
+   if( cur_mode.symbolic ) then
       cmd = cmd.." -s"
    end
    if( not action_prompt(cmd.." '"..src.."' '"..dest.."'") ) then
       return
    end
 
-   local ok, msg, code = lfs.link( src, dest, settings.symbolic )
+   local ok, msg, code = lfs.link( src, dest, cur_mode.symbolic )
    if( ok == nil ) then
       print("   Error creating link from '"..src.."' to '"..dest.."': "..msg)
    end
@@ -233,9 +234,9 @@ local function exec_item(src, dest)
    end
 
    -- See if we are saving all matches for one run or doing one at a time.
-   if( settings.command ) then
+   if( cur_mode.command ) then
       -- If we're queuing, add match to queue
-      settings.command[ #settings.command + 1 ] = dest
+      cur_mode.command[ #cur_mode.command + 1 ] = dest
    else
       -- Otherwise, execute command
       local bOk, result, code = os.execute( dest )
@@ -315,8 +316,6 @@ fn_modes_mt.__index = function(table,key)
    }
 end
 setmetatable(fn_modes, fn_modes_mt)
-
-local cur_mode = fn_modes[run_modes[run_as]["command"]]
 
 local function handle_dir(dir_names)
 
@@ -507,7 +506,8 @@ options["-c"] = {
       else
 	 dest = "%0"
       end
-      actions[ #actions ] = { "action" = fn_modes.copy, "dest" = dest }
+      actions[ #actions + 1 ] = { action = fn_modes.copy, dest = dest,
+				  name = "copy" }
    end
 }
 
@@ -524,7 +524,8 @@ options["-m"] = {
       else
 	 dest = "%0"
       end
-      actions[ #actions ] = { "action" = fn_modes.move, "dest" = dest }
+      actions[ #actions + 1 ] = { action = fn_modes.move, dest = dest,
+				  name = "move" }
    end
 }
 
@@ -536,13 +537,14 @@ options["-l"] = {
       "defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      actions[ #actions ] = fn_modes.link
-      settings.symbolic = false
+      local dest
       if( 0 < #opt_args ) then
-	 settings.dest = opt_args[ 1 ]
+	 dest = opt_args[ 1 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
+      actions[ #actions + 1 ] = { action = fn_modes.link, dest = dest,
+				  symbolic = false, name = "hard link" }
    end
 }
 
@@ -554,13 +556,14 @@ options["-s"] = {
       "[transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      actions[ #actions ] = fn_modes.link
-      settings.symbolic = true
+      local dest
       if( 0 < #opt_args ) then
-	 settings.dest = opt_args[ 1 ]
+	 dest = opt_args[ 1 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
+      actions[ #actions + 1 ] = { action = fn_modes.link, dest = dest,
+				  symbolic = true, name = "soft link" }
    end
 }
 
@@ -579,12 +582,14 @@ options["--delete"] = {
    "[transform], then deletes the result. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      actions[ #actions ] = fn_modes.remove
+      local dest
       if( 0 < #opt_args ) then
-	 settings.dest = opt_args[ 1 ]
+	 dest = opt_args[ 1 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
+      actions[ #actions + 1 ] = { action = fn_modes.remove, dest = dest,
+				  name = "remove"}
    end
 }
 
@@ -597,8 +602,8 @@ options["-e"] = {
    min_arguments = 1,
    max_arguments = 1,
    action = function( opt_args )
-      actions[ #actions ] = fn_modes.exec
-      settings.dest = opt_args[ 1 ]
+      actions[ #actions + 1 ] = { action = fn_modes.exec, dest = opt_args[ 1 ],
+				  name = "exec per match" }
    end
 }
 
@@ -612,14 +617,16 @@ options["-E"] = {
    min_arguments = 1,
    max_arguments = 2,
    action = function( opt_args )
-      actions[ #actions ] = fn_modes.exec
-      settings.command = { opt_args[ 1 ] }
+      local dest
       if( 1 < #opt_args ) then
-	 settings.dest = opt_args[ 2 ]
+	 dest = opt_args[ 2 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
-      settings.command_args = {}
+      actions[ #actions + 1 ] = { action = fn_modes.exec, dest = dest,
+				  command = { opt_args[ 1 ] },
+				  name = "exec all at once",
+				  post = true }
    end
 }
 
@@ -630,12 +637,14 @@ options["-p"] = {
    "[transform], and display result to SDOUT. [transform] defaults to %0.",
    max_arguments = 1,
    action = function( opt_args )
-      actions[ #actions ] = fn_modes.print
+      local dest
       if( 0 < #opt_args ) then
-	 settings.dest = opt_args[ 1 ]
+	 dest = opt_args[ 1 ]
       else
-	 settings.dest = "%0"
+	 dest = "%0"
       end
+      actions[ #actions + 1 ] = { action = fn_modes.print, dest = dest,
+				  name = print }
    end
 }
 
@@ -742,9 +751,9 @@ end
 
 -- If -L is specified, reinterpret DEST as Lua code. Prepend defining a local
 -- varsettings that contains the results of the match.
-if settings.lua then
-   transform = loadstring("local v={...}; v=v[1]; "..settings.dest)
-end
+-- if settings.lua then
+--    transform = loadstring("local v={...}; v=v[1]; "..settings.dest)
+-- end
 
 -- debug
 if showMsgs.args then
@@ -755,7 +764,15 @@ if showMsgs.args then
    print("Searching:")
    for k,v in pairs(paths) do print("\t"..k..": '"..tostring(v).."'") end
    print("----")
-   print("Mode: " .. cur_mode.desc)
+   print("Action Queue:")
+   for i,action in ipairs(actions) do
+      if action.dest then
+	 print("\t"..i..": "..action.name.." -> "..action.dest)
+      else
+	 print("\t"..i..": "..action.name)
+      end
+   end
+   print("")
    print("Screen Width: "..screen_width)
    print("[End Debug]")
    print("")
@@ -782,29 +799,32 @@ for pathname in searcher do
    
    -- Attempt to match against SRC
    local elements = match_pathname( pathname )
-   local newname
-   if elements then
-      newname = transform( elements )
-   end
+   for _, mode in ipairs( actions ) do
+      cur_mode = mode
 
-   -- Call appropriate handler if we have a match
-   if( newname ~= nil ) then
-      if( attrs.mode == "directory" and settings.files_only == nil ) then
-	 for _, mode in ipairs( actions ) do
-	    mode.dir_action( pathname, newname )
-	 end
-      elseif( attrs.mode == "file" and settings.dirs_only == nil ) then
-	 for _, mode in ipairs( actions ) do
-	    mode.file_action( pathname, newname )
+      local newname
+      if elements then
+	 newname = transform( elements )
+      end
+      
+      -- Call appropriate handler if we have a match
+      if( newname ~= nil ) then
+	 if( attrs.mode == "directory" and settings.files_only == nil ) then
+	    mode.action.dir_action( pathname, newname )
+	 elseif( attrs.mode == "file" and settings.dirs_only == nil ) then
+	    mode.action.file_action( pathname, newname )
 	 end
       end
    end
 end
 
--- If we are in exec-all-matches-at-once mode, then build string to execute and
--- stuff into one string, then call the exec action on it.
-if( settings.command ) then
-   local dest = table.concat( settings.command, " " )
-   settings.command = nil
-   exec_item( "", dest )
+-- If we have any exec-all-matches-at-once actions,  build the string to
+-- execute and then execute it for each action.
+for _, mode in ipairs( actions ) do
+   if mode.post then
+      cur_mode = mode
+      local dest = table.concat( cur_mode.command, " " )
+      cur_mode.command = nil
+      exec_item( "", dest )
+   end
 end
