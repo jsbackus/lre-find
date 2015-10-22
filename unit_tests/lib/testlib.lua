@@ -169,20 +169,31 @@ function m.read_tree( filepath )
 	       ( lfs.symlinkattributes( entry_path, 'mode' ) == "link" )
 	    record.nlink = attrs.nlink
 	    record.mode = attrs.mode
-	    
-	    if( record.mode == "file" ) then
-	       -- Read entire file and stuff into contents
-	       fin = io.open( entry_path, 'rb' )
+
+	    if( record.symbolic_link ) then
+	       -- Set contents to the link location. Requires that readlink
+	       -- be installed. This is Posix only, but so are symbolic links..
+	       fin = io.popen( 'readlink '..entry_path )
 	       if( fin ) then
 		  record.contents = fin:read('a')
 		  fin:close()
 	       end
 	    else
-	       record.contents = {}
-	       
-	       -- Append to queue
-	       queue[ next_free ] = { record = record.contents, path = entry_path }
-	       next_free = next_free + 1
+	       if( record.mode == "file" ) then
+		  -- Read entire file and stuff into contents
+		  fin = io.open( entry_path, 'rb' )
+		  if( fin ) then
+		     record.contents = fin:read('a')
+		     fin:close()
+		  end
+	       else
+		  record.contents = {}
+		  
+		  -- Append to queue
+		  queue[ next_free ] = { record = record.contents,
+					 path = entry_path }
+		  next_free = next_free + 1
+	       end
 	    end
 	    
 	    -- Add record to parent
@@ -217,8 +228,8 @@ function m.dump_tree( tree, path )
       m.write("'"..entry_path.."' -> ")
       m.write("mode = "..v.mode..", nlink = "..tostring(v.nlink)..
 		 ", symlink? "..tostring(v.symbolic_link))
-      if( v.mode == "file" ) then
-	 m.write(" contents: "..v.contents.."\n")
+      if( v.mode == "file" or v.symbolic_link ) then
+	 m.write(", contents: "..v.contents.."\n")
       else
 	 m.write("\n")
 	 m.dump_tree( v.contents, entry_path )
