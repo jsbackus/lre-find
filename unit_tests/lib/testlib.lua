@@ -35,6 +35,13 @@ local fs_delim = package.config:sub(1,1)
 
 local default_exec_path = '..'..fs_delim
 
+--[[
+   Displays the specified message
+]]
+function m.write( msg )
+   io.write( msg )
+end
+
 --[[ 
    Executes all tests in the specified suite.
 
@@ -52,30 +59,55 @@ function m.execute_suite( suite_name, suite_fns )
    local total = 0
    local pass = 0
 
-   print( string.rep( '*', 60 ) )
-   print( "Executing suite '"..suite_name.."':" )
+   m.write( string.rep( '*', 60 )..'\n' )
+   m.write( "Executing suite '"..suite_name.."':\n" )
    for name,fn in pairs( suite_fns ) do
       if( name:lower():sub(1,5) == "test_" ) then
 
+	 local ok, msg
+	 
+	 -- Run setup function, if it exists
+	 if( suite_fns.setup ) then
+	    ok, msg = pcall( suite_fns.setup )
+	    if( ok ~= nil ) then
+	       m.write( "Setup failed:\n" )
+	       m.write( msg )
+	    end
+	 end
+
+	 -- Attempt test
 	 total = total + 1
-	 io.write( '  '..name.." ... " )
-	 local ok, msg = pcall( fn )
+	 m.write( '  '..name.." ... " )
+	 ok, msg = pcall( fn )
 
 	 if( ok ) then
-	    print( "Passed" )
+	    m.write( "Passed\n" )
 	    pass = pass + 1
 	 else
-	    print( "FAILED:" )
-	    print( msg )
-	    print( "" )
+	    m.write( "FAILED:\n" )
+	    m.write( msg )
+	    m.write( "\n\n" )
+	 end
+
+	 -- Run test-specific cleanup function, if it exists. If not, try
+	 -- the general cleanup.
+	 local cleanfn = suite_fns[ 'cleanup'..name:sub(5) ] or
+	    suite_fns.cleanup
+
+	 if( cleanfn ) then
+	    ok, msg = pcall( cleanfn )
+	    if( ok ~= nil ) then
+	       m.write( "Cleanup failed:\n" )
+	       m.write( msg )
+	    end
 	 end
       end
    end
-   print( "" )
-   print( "Results for suite '"..suite_name.."': "..tostring(pass)..
-	     " of "..tostring(total).." pass" )
-   print( string.rep( '*', 60 ) )
-   print( "" )
+   m.write( "\n" )
+   m.write( "Results for suite '"..suite_name.."': "..tostring(pass)..
+	     " of "..tostring(total).." pass\n" )
+   m.write( string.rep( '*', 60 ) )
+   m.write( "\n\n" )
 
    return { total = total, pass = pass }
 end
