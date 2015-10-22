@@ -145,6 +145,14 @@ function m.get_cmd_output( cmd, args )
    return code, lines
 end
 
+--[[ 
+   Crawls the specified directory tree, removing each item in turn.
+]]
+function m.del_tree( path )
+   -- TODO
+   print("del_tree not implemented!")
+end
+
 --[[
    Builds a table that represents the contents of the specified directory tree.
 ]]
@@ -175,7 +183,7 @@ function m.read_tree( filepath )
 	       -- be installed. This is Posix only, but so are symbolic links..
 	       fin = io.popen( 'readlink '..entry_path )
 	       if( fin ) then
-		  record.contents = fin:read('a')
+		  record.contents = fin:read()
 		  fin:close()
 	       end
 	    else
@@ -212,7 +220,68 @@ function m.read_tree( filepath )
    return retval
 end
 
---[[ Displays the contents of the specified table representing a directory 
+--[[
+   Takes a set of nested tables that contain directory information and 
+   recreates the indicated structure within the specified root.
+
+   Removes the specified root, first.
+]]
+function m.make_tree( tree, root )
+   -- Remove root, if it exists
+   m.del_tree( root )
+
+   -- <pos> = { record = ref, path = full path }
+   local queue = { { record = tree, path = root } }
+   local i = 1
+   local next_free = 2
+
+   while queue[ i ] do
+      pathname = queue[ i ].path
+
+      -- Make the specified path
+      lfs.mkdir( pathname )
+      
+      for entry, record in pairs( queue[ i ].record ) do
+	 local entry_path = pathname..fs_delim..entry
+	 if( record.symbolic_link ) then
+	    -- Make the symbolic link
+	    local tmp_dir = lfs.currentdir()
+	    lfs.chdir(pathname)
+	    lfs.link( record.contents, entry, true )
+	    lfs.chdir(tmp_dir)
+	 elseif( record.mode == "file" ) then
+	    -- Create file
+	    fout = assert(io.open( entry_path, "wb" ),
+			  "Unable to open file '"..entry_path.."' for writing!")
+	    fout:write( record.contents )
+	    fout:close()
+	 elseif( record.mode == "directory" ) then
+	    -- Append to queue
+	    queue[ next_free ] = { record = record.contents,
+				   path = entry_path }
+	    next_free = next_free + 1
+	 elseif( record.mode == "link" ) then
+	    -- Indicates hard link
+	    local tmp_dir = lfs.currentdir()
+	    lfs.chdir(pathname)
+	    lfs.link( record.contents, entry, false )
+	    lfs.chdir(tmp_dir)
+	 else
+	    error("Unsupported mode: "..record.mode)
+	 end
+      end
+      -- Remove entry
+      queue[ i ] = nil
+      
+      -- Move on to next entry
+      i = i + 1
+   end
+
+   return retval
+end
+
+--[[ 
+   Displays the contents of the specified table representing a directory 
    tree.
 
    Intended for debug purposes.
