@@ -32,7 +32,7 @@ local pass = 0
 local total = 0
 local num_suites = 0
 for fn in lfs.dir('.') do
-   if fn:match('suite_.*%.lua') then
+   if fn:match('^suite_.*%.lua$') then
       num_suites = num_suites + 1
       local suite = loadfile(fn)
       local results = suite()
