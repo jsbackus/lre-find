@@ -145,4 +145,85 @@ function m.get_cmd_output( cmd, args )
    return code, lines
 end
 
+--[[
+   Builds a table that represents the contents of the specified directory tree.
+]]
+function m.read_tree( filepath )
+   -- entry = { mode = mode, nlink = num, symbolic_link = t/f
+   --           contents = [string if file, table if dir] }
+   local retval = {}
+   -- <pos> = { record = ref, path = full path }
+   local queue = { { record = retval, path = filepath } }
+   local i = 1
+   local next_free = 2
+
+   while queue[ i ] do
+      pathname = queue[ i ].path
+      parent_record = queue[ i ].record
+      for entry in lfs.dir( pathname ) do
+	 if( entry ~= '.' and entry ~= '..' ) then
+	    local entry_path = pathname..fs_delim..entry
+	    local record = {}
+	    local attrs = lfs.attributes( entry_path )
+	    record.symbolic_link =
+	       ( lfs.symlinkattributes( entry_path, 'mode' ) == "link" )
+	    record.nlink = attrs.nlink
+	    record.mode = attrs.mode
+	    
+	    if( record.mode == "file" ) then
+	       -- Read entire file and stuff into contents
+	       fin = io.open( entry_path, 'rb' )
+	       if( fin ) then
+		  record.contents = fin:read('a')
+		  fin:close()
+	       end
+	    else
+	       record.contents = {}
+	       
+	       -- Append to queue
+	       queue[ next_free ] = { record = record.contents, path = entry_path }
+	       next_free = next_free + 1
+	    end
+	    
+	    -- Add record to parent
+	    parent_record[ entry ] = record
+	    
+	 end
+      end
+      
+      -- Remove entry
+      queue[ i ] = nil
+      
+      -- Move on to next entry
+      i = i + 1
+   end
+
+   return retval
+end
+
+--[[ Displays the contents of the specified table representing a directory 
+   tree.
+
+   Intended for debug purposes.
+]]
+function m.dump_tree( tree, path )
+   for k,v in pairs(tree) do
+      local entry_path
+      if( path ) then
+	 entry_path = path..fs_delim..k
+      else
+	 entry_path = k
+      end
+      m.write("'"..entry_path.."' -> ")
+      m.write("mode = "..v.mode..", nlink = "..tostring(v.nlink)..
+		 ", symlink? "..tostring(v.symbolic_link))
+      if( v.mode == "file" ) then
+	 m.write(" contents: "..v.contents.."\n")
+      else
+	 m.write("\n")
+	 m.dump_tree( v.contents, entry_path )
+      end
+   end
+end
+
 return m
