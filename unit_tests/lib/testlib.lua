@@ -33,6 +33,8 @@ local lfs = require "lfs";
 -- Put filesystem delimiter into a global variable for later.
 local fs_delim = package.config:sub(1,1)
 
+local default_exec_path = '..'..fs_delim
+
 --[[ 
    Executes all tests in the specified suite.
 
@@ -76,6 +78,37 @@ function m.execute_suite( suite_name, suite_fns )
    print( "" )
 
    return { total = total, pass = pass }
+end
+
+--[[
+   Sets the default execution path.
+
+   This path is prepended to the command specified to get_cmd_output.
+]]
+function m.set_default_exec_path( path )
+   default_exec_path = path
+end
+
+--[[
+   Executes the specified command with the specified arguments.
+
+   args is a list of arguments which will be joined with ' '.
+
+   Command return code and a list of each line written to STDOUT is returned.
+
+   An error is raised if unable to execute command with popen.
+]]
+function m.get_cmd_output( cmd, args )
+   local lclcmd = default_exec_path..cmd..' '..table.concat(args, ' ')
+   local fin = assert( io.popen( lclcmd, 'r' ),
+		       "Unable to execute '"..lclcmd.."'" )
+   local lines = {}
+   for l in fin:lines() do
+      lines[ #lines + 1 ] = l
+   end
+
+   local ok, msg, code = fin:close()
+   return code, lines
 end
 
 return m
