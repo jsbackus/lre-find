@@ -30,6 +30,8 @@ local suite_name = "template"
 
 -- Put filesystem delimiter into a global variable for later.
 local fs_delim = package.config:sub(1,1)
+
+-- Add lib subdirectory so that we can find the library..
 local t = { '.', 'lib', '?.lua;' }
 package.path = table.concat(t, fs_delim)..package.path
 
@@ -38,11 +40,25 @@ local test = require "lib/testlib"
 
 local m = {}
 
+-- General setup function
+function m.setup()
+   --test.write( "In Setup\n" )
+end
+
+-- General cleanup function
+function m.cleanup()
+   --test.write( "General Cleanup\n" )
+end
+
 -- Define test functions here. Each must be in m and begin with test_.
 -- Each test should return true on pass or nil + error message on fail.
 -- Ex:
 function m.test_ex1()
    return true
+end
+
+function m.cleanup_ex1()
+   --test.write( "Example Cleanup\n" )
 end
 
 return test.execute_suite( suite_name, m )
