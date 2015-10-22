@@ -39,7 +39,9 @@ local default_exec_path = '..'..fs_delim
    Displays the specified message
 ]]
 function m.write( msg )
-   io.write( msg )
+   if( msg ) then
+      io.write( msg )
+   end
 end
 
 --[[ 
