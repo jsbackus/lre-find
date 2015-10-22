@@ -29,6 +29,8 @@ local suite_name = "print"
 
 -- Put filesystem delimiter into a global variable for later.
 local fs_delim = package.config:sub(1,1)
+
+-- Add lib subdirectory so that we can find the library..
 local t = { '.', 'lib', '?.lua;' }
 package.path = table.concat(t, fs_delim)..package.path
 
