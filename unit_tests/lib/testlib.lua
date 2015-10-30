@@ -119,6 +119,7 @@ end
 
    This path is prepended to the command specified to get_cmd_output.
 ]]
+
 function m.set_default_exec_path( path )
    default_exec_path = path
 end
@@ -126,7 +127,7 @@ end
 --[[
    Executes the specified command with the specified arguments.
 
-   args is a list of arguments which will be joined with ' '.
+   args is a list of arguments which will be joined with spaces.
 
    Command return code and a list of each line written to STDOUT is returned.
 
@@ -304,6 +305,45 @@ function m.dump_tree( tree, path )
 	 m.dump_tree( v.contents, entry_path )
       end
    end
+end
+
+--[[
+   Compares what the program returned via STDOUT to the specified expected 
+   value.
+]]
+function m.compare_stdout( expected, actual )
+   local retval = true
+
+   local min_lines = math.min( #expected, #actual )
+
+   local showed_msg = false
+   for i in 1, min_lines do
+      if( expected[i] ~= actual[i] ) then
+	 if( not showed_msg ) then
+	    m.write( "Output did not match expected:\n" )
+	    showed_msg = true
+	 end
+	 m.write( "Expected '" .. expected[i] .. "', got: '" .. actual[i] .. "'" )
+	 retval = false
+      end
+   end
+
+   if( #expected ~= #actual ) then
+      if( #expected < #actual ) then
+	 m.write( "Unexpected output:\n" )
+	 for i in #expected + 1, #actual do
+	    m.write( actual[ i ] )
+	 end
+      else
+	 m.write( "Missing expected output:\n" )
+	 for i in #actual + 1, #expected do
+	    m.write( expected[ i ] )
+	 end
+      end
+      retval = false
+   end
+   
+   return retval
 end
 
 return m
