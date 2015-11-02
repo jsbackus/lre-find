@@ -36,41 +36,60 @@ package.path = table.concat(t, fs_delim)..package.path
 
 local lfs = require "lfs"
 local test = require "lib/testlib"
+local trees = require "lib/input_trees"
 
 local test_file = "stdin_tests.stdin.txt"
+local test_script = "run_stdin_test.sh"
 
 local m = {}
 
 -- Begin support functions
 
 --[[
-   A simple input scheme
-]]
-function m.input_scheme1()
-   
-   local fdata = [[
-src/alpha/t00_check_send.txt
-src/alpha/t01_check_rcv.txt
-src/alpha/t02_check_noop.txt
-src/i686/t03_check_send.txt
-src/i686/t04_check_noop.txt
-src/i686/t05_check_rcv.txt
-src/arm/t06_check_rcv.txt
-src/arm/t07_check_send.txt
-src/arm/t08_check_noop.txt
-]]
+   Creates an input file and a script to send its contents to lre-find.
 
-   local fout = assert( io.open( test_file, "w" ) )
-   fout:write( fdata )
+   Populates the input file with the paths of all leaf items, including empty
+   directories.
+]]
+function m.create_test_file( tree, parent )
+   
+   local fout = assert( io.open( test_script, "w" ) )
+   fout:write( "cat "..test_file.." | ../lre-find $@\n" )
+   fout:close()
+
+   local crawler
+   crawler = function( sub_tree, path )
+      local is_leaf = true
+      if( type(sub_tree) == "table" ) then
+	 for k, v in pairs( sub_tree ) do
+	    local new_tree = {}
+	    if( v.mode == "directory" ) then
+	       new_tree = v.contents
+	    end
+	    crawler( new_tree, path..fs_delim..k )
+	    is_leaf = nil
+	 end
+      end
+      if( is_leaf ) then
+	 coroutine.yield( path.."\n" )
+      end
+   end
+
+   fout = assert( io.open( test_file, "w" ) )
+   for path in coroutine.wrap( function() crawler(tree, parent) end) do
+      fout:write( path )
+   end
    fout:close()
 end
 
 function m.cleanup()
    os.remove( test_file )
+   os.remove( test_script )
+   return true
 end
 
 -- Begin tests
-function m.test_simple_match()
+function m.test_normal_heirarchy()
    local exp_val = {
       "tests/send/t00_check_alpha.txt",
       "tests/rcv/t01_check_alpha.txt",
@@ -83,13 +102,21 @@ function m.test_simple_match()
       "tests/noop/t08_check_arm.txt",
    }
 
-   m.input_scheme1()
+   local tree = trees.tree1()
+   test.dump_tree( tree )
+   m.create_test_file( tree, 'src' )
+   test.make_tree( tree, 'src' )
+--   local pfft = test.read_tree( 'src' )
+--   test.dump_tree( pfft )
 
    test.set_default_exec_path( "" )
    
-   local code, lines = test.get_cmd_output( 'cat '..test_file..' | ../lre-find', { '"/(%w+)/(t%d+)_check_(%w+).txt"', '--', '-p', 'tests/%3/%1_check_%2.txt' } )
+   local code, lines = test.get_cmd_output( '/bin/sh '..test_script,
+					    { '"/(%w+)/(t%d+)_check_(%w+).txt"',
+					      '--', '-p',
+					      'tests/%3/%2_check_%1.txt' } )
    assert( code == 0, "Invalid return code: " .. tostring(code) )
-   assert( test.compare_stdout( exp_val, lines ) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
 
    return true
 end
