@@ -227,6 +227,7 @@ end
 
    Removes the specified root, first.
 ]]
+
 function m.make_tree( tree, root )
    -- Remove root, if it exists
    m.del_tree( root )
@@ -296,7 +297,7 @@ function m.dump_tree( tree, path )
 	 entry_path = k
       end
       m.write("'"..entry_path.."' -> ")
-      m.write("mode = "..v.mode..", nlink = "..tostring(v.nlink)..
+      m.write("mode = "..tostring(v.mode)..", nlink = "..tostring(v.nlink)..
 		 ", symlink? "..tostring(v.symbolic_link))
       if( v.mode == "file" or v.symbolic_link ) then
 	 m.write(", contents: "..v.contents.."\n")
@@ -317,13 +318,13 @@ function m.compare_stdout( expected, actual )
    local min_lines = math.min( #expected, #actual )
 
    local showed_msg = false
-   for i in 1, min_lines do
+   for i = 1, min_lines do
       if( expected[i] ~= actual[i] ) then
 	 if( not showed_msg ) then
 	    m.write( "Output did not match expected:\n" )
 	    showed_msg = true
 	 end
-	 m.write( "Expected '" .. expected[i] .. "', got: '" .. actual[i] .. "'" )
+	 m.write( "Expected '" .. expected[i] .. "', got: '" .. actual[i] .. "'\n" )
 	 retval = false
       end
    end
@@ -340,6 +341,55 @@ function m.compare_stdout( expected, actual )
 	    m.write( expected[ i ] )
 	 end
       end
+      retval = false
+   end
+   
+   return retval
+end
+
+--[[
+   Compares what the program returned via STDOUT to the specified expected 
+   value.
+
+   This is the unordered version.
+]]
+function m.compare_unordered_stdout( expected, actual )
+   local retval = true
+
+   local actual_map = {}
+
+   for i, v in ipairs(actual) do
+      if actual_map[ v ] then
+	 actual_map[ v ] = actual_map[ v ] + 1
+      else
+	 actual_map[ v ] = 1
+      end
+   end
+
+   local showed_msg = false
+   for i, v in ipairs(expected) do
+      if actual_map[ v ] then
+	 actual_map[ v ] = actual_map[ v ] - 1
+	 if( actual_map[ v ] < 1 ) then
+	    actual_map[ v ] = nil
+	 end
+      else
+	 if( not showed_msg ) then
+	    m.write( "Missing expected output:\n" )
+	    showed_msg = true
+	 end
+	 m.write( v .. "'\n" )
+	 retval = false
+      end
+   end
+
+   showed_msg = false
+   for i, v in pairs(actual_map) do
+      if( not showed_msg ) then
+	 m.write( "Unexpected Output:\n" )
+	 showed_msg = true
+      end
+      m.write( i .. "'\n" )
       retval = false
    end
    
