@@ -31,14 +31,25 @@ local lfs = require "lfs";
 local pass = 0
 local total = 0
 local num_suites = 0
+local suite_list = {}
+local suite_index = {}
 for fn in lfs.dir('.') do
-   if fn:match('^suite_.*%.lua$') then
+   local suite_num, suite_name = fn:match('^(%d+)_suite_(.*)%.lua$')
+   if suite_num and suite_name then
       num_suites = num_suites + 1
-      local suite = loadfile(fn)
-      local results = suite()
-      pass = pass + results.pass
-      total = total + results.total
+      suite_list[ suite_num ] = suite_name
+      suite_index[ #suite_index + 1 ] = suite_num
    end
+end
+
+table.sort( suite_index )
+for i, idx in ipairs( suite_index ) do
+   suite_name = suite_list[ idx ]
+   local fn = idx..'_suite_'..suite_name..'.lua'
+   local suite = loadfile(fn)
+   local results = suite()
+   pass = pass + results.pass
+   total = total + results.total
 end
 
 -- Print a summary of results
