@@ -100,12 +100,11 @@ function m.test_normal_heirarchy()
       "tests/noop/t08_check_arm.txt",
    }
 
+   local tree_root = 'src'
    local tree = trees.tree1()
-   test.dump_tree( tree )
-   m.create_test_file( tree, 'src' )
-   test.make_tree( tree, 'src' )
---   local pfft = test.read_tree( 'src' )
---   test.dump_tree( pfft )
+
+   m.create_test_file( tree, tree_root )
+   test.make_tree( tree, tree_root )
 
    test.set_default_exec_path( "" )
    
@@ -113,6 +112,9 @@ function m.test_normal_heirarchy()
 					    { '"/(%w+)/(t%d+)_check_(%w+).txt"',
 					      '--', '-p',
 					      'tests/%3/%2_check_%1.txt' } )
+   
+   -- Go ahead and remove the tree before checking output
+   test.del_tree( tree_root )
    assert( code == 0, "Invalid return code: " .. tostring(code) )
    assert( test.compare_unordered_stdout( exp_val, lines ) )
 
