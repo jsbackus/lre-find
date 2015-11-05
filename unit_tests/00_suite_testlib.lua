@@ -39,7 +39,7 @@ local trees = require "lib/input_trees"
 
 local m = {}
 
-function m.test_deltree()
+function m.test_del_tree()
 
    local tree_root = 'tree1'
    local tree = trees.tree1()
