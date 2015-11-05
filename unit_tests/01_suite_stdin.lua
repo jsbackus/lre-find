@@ -83,9 +83,8 @@ function m.create_test_file( tree, parent )
 end
 
 function m.cleanup()
-   os.remove( test_file )
-   os.remove( test_script )
-   return true
+   assert( os.remove( test_file ) )
+   assert( os.remove( test_script ) )
 end
 
 -- Begin tests
