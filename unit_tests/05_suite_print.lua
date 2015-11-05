@@ -25,7 +25,6 @@
 -------------------------------------------------------------------------------
 -- Test suite for the print subfunction
 -------------------------------------------------------------------------------
-local suite_name = "print"
 
 -- Put filesystem delimiter into a global variable for later.
 local fs_delim = package.config:sub(1,1)
@@ -40,7 +39,8 @@ local test = require "lib/testlib"
 local m = {}
 
 function m.test_ex1()
+   assert( false, "not implemented" )
    return true
 end
 
-return test.execute_suite( suite_name, m )
+return test.execute_suite( m )

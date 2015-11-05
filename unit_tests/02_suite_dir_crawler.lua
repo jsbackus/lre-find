@@ -23,9 +23,8 @@
 -- SOFTWARE.
 
 -------------------------------------------------------------------------------
--- Test suite for miscellaneous stuff
+-- Test suite for the directory crawling code
 -------------------------------------------------------------------------------
-local suite_name = "misc"
 
 -- Put filesystem delimiter into a global variable for later.
 local fs_delim = package.config:sub(1,1)
@@ -39,13 +38,17 @@ local test = require "lib/testlib"
 
 local m = {}
 
-function m.test_invalid_arg()
-   -- TODO
-   local code, lines = test.get_cmd_output( 'lre-find', { '-B' } )
-   print( "Output: \n" .. table.concat( lines, '\n\t' ) )
-   print( "" )
-   assert(code == 0, "Invalid return code: " .. tostring(code) )
+function m.test_ex1()
+   print("")
+   local my_tree = test.read_tree( 'src' )
+   test.dump_tree( my_tree )
+
+   my_tree.a.contents.b.contents["wozzy.txt"].mode = 'link'
+   my_tree.a.contents.b.contents["wozzy.txt"].contents = '../pssh.txt'   
+   test.make_tree( my_tree, 'dest' )
+   my_tree = test.read_tree( 'dest' )
+   test.dump_tree( my_tree )
    return true
 end
 
-return test.execute_suite( suite_name, m )
+return test.execute_suite( m )
