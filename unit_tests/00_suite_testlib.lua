@@ -39,6 +39,19 @@ local trees = require "lib/input_trees"
 
 local m = {}
 
+function m.test_deltree()
+
+   local tree_root = 'tree1'
+   local tree = trees.tree1()
+   test.make_tree( tree, tree_root )
+
+   test.del_tree( tree_root )
+   local check = pcall( test.read_tree, tree_root )
+   assert( check == nil, "Was able to read from "..tree_root )
+   
+   return true
+end
+
 function m.test_tree1()
 
    local tree_root = 'tree1'
