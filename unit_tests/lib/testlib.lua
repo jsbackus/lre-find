@@ -109,7 +109,6 @@ function m.execute_suite( suite_fns )
    m.write( "\n" )
    m.write( "Results for suite '"..suite_name.."': "..tostring(pass)..
 	     " of "..tostring(total).." pass\n" )
-   m.write( string.rep( '*', 60 ) )
    m.write( "\n\n" )
 
    return { total = total, pass = pass }
