@@ -98,9 +98,9 @@ function m.execute_suite( suite_name, suite_fns )
 
 	 if( cleanfn ) then
 	    ok, msg = pcall( cleanfn )
-	    if( ok ~= nil ) then
+	    if( ok == false ) then
 	       m.write( "Cleanup failed:\n" )
-	       m.write( msg )
+	       m.write( tostring(msg) )
 	    end
 	 end
       end
