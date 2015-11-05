@@ -25,7 +25,6 @@
 -------------------------------------------------------------------------------
 -- Test suite for taking a path list from STDIN.
 -------------------------------------------------------------------------------
-local suite_name = "stdin"
 
 -- Put filesystem delimiter into a global variable for later.
 local fs_delim = package.config:sub(1,1)
@@ -120,4 +119,4 @@ function m.test_normal_heirarchy()
    return true
 end
 
-return test.execute_suite( suite_name, m )
+return test.execute_suite( m )

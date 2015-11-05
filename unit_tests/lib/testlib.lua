@@ -56,10 +56,11 @@ end
    Returns a table containing the total number of tests and the number of
    passing tests.
 ]]
-function m.execute_suite( suite_name, suite_fns )
+function m.execute_suite( suite_fns )
 
    local total = 0
    local pass = 0
+   local suite_name = suite_name or arg[0]:match('/%d+_suite_(.*)%.lua$')
 
    m.write( string.rep( '*', 60 )..'\n' )
    m.write( "Executing suite '"..suite_name.."':\n" )
