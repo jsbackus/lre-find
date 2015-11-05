@@ -322,26 +322,30 @@ function m.compare_stdout( expected, actual )
    for i = 1, min_lines do
       if( expected[i] ~= actual[i] ) then
 	 if( not showed_msg ) then
-	    m.write( "Output did not match expected:\n" )
+	    m.write( "--> Output did not match expected:\n" )
 	    showed_msg = true
 	 end
 	 m.write( "Expected '" .. expected[i] .. "', got: '" .. actual[i] .. "'\n" )
 	 retval = false
       end
    end
+   if( showed_msg ) then
+      m.write( '\n' )
+   end
 
    if( #expected ~= #actual ) then
       if( #expected < #actual ) then
-	 m.write( "Unexpected output:\n" )
+	 m.write( "--> Unexpected output:\n" )
 	 for i in #expected + 1, #actual do
-	    m.write( actual[ i ] )
+	    m.write( actual[ i ]..'\n' )
 	 end
       else
-	 m.write( "Missing expected output:\n" )
+	 m.write( "--> Missing expected output:\n" )
 	 for i in #actual + 1, #expected do
-	    m.write( expected[ i ] )
+	    m.write( expected[ i ]..'\n' )
 	 end
       end
+      m.write('\n')
       retval = false
    end
    
@@ -376,22 +380,28 @@ function m.compare_unordered_stdout( expected, actual )
 	 end
       else
 	 if( not showed_msg ) then
-	    m.write( "Missing expected output:\n" )
+	    m.write( "--> Missing expected output:\n" )
 	    showed_msg = true
 	 end
-	 m.write( v .. "'\n" )
+	 m.write( v .. "\n" )
 	 retval = false
       end
+   end
+   if( showed_msg ) then
+      m.write( '\n' )
    end
 
    showed_msg = false
    for i, v in pairs(actual_map) do
       if( not showed_msg ) then
-	 m.write( "Unexpected Output:\n" )
+	 m.write( "--> Unexpected Output:\n" )
 	 showed_msg = true
       end
-      m.write( i .. "'\n" )
+      m.write( i .. "\n" )
       retval = false
+   end
+   if( showed_msg ) then
+      m.write( '\n' )
    end
    
    return retval
