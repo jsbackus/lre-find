@@ -33,37 +33,49 @@ local m = {}
 function m.tree1()
 
    local retval = { }
-   retval.alpha = { mode = "directory", nlink = 2, contents = {} }
+   retval.alpha = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
    retval.alpha.contents["t00_check_send.txt"] = { mode = "file",
 						   nlink = 1,
+						   symbolic_link = false,
 						   contents = "alpha send" }
    retval.alpha.contents["t01_check_rcv.txt"] = { mode = "file",
 						  nlink = 1,
+						   symbolic_link = false,
 						  contents = "alpha receive" }
    retval.alpha.contents["t02_check_noop.txt"] = { mode = "file",
 						   nlink = 1,
+						   symbolic_link = false,
 						   contents = "alpha no-op" }
    
-   retval.i686 = { mode = "directory", nlink = 2, contents = {} }
+   retval.i686 = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
    retval.i686.contents["t03_check_send.txt"] = { mode = "file",
 						  nlink = 1,
+						  symbolic_link = false,
 						  contents = "i686 send" }
    retval.i686.contents["t04_check_noop.txt"] = { mode = "file",
 						  nlink = 1,
+						  symbolic_link = false,
 						  contents = "i686 no-op" }
    retval.i686.contents["t05_check_rcv.txt"] = { mode = "file",
 						 nlink = 1,
+						 symbolic_link = false,
 						 contents = "i686 receive" }
    
-   retval.arm = { mode = "directory", nlink = 2, contents = {} }
+   retval.arm = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
    retval.arm.contents["t06_check_rcv.txt"] = { mode = "file",
 						nlink = 1,
+						symbolic_link = false,
 						contents = "arm receive" }
    retval.arm.contents["t07_check_send.txt"] = { mode = "file",
 						 nlink = 1,
+						 symbolic_link = false,
 						 contents = "arm send" }
    retval.arm.contents["t08_check_noop.txt"] = { mode = "file",
 						 nlink = 1,
+						 symbolic_link = false,
 						 contents = "arm no-op" }
    
    return retval
