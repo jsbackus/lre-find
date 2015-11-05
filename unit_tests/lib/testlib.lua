@@ -283,6 +283,65 @@ function m.make_tree( tree, root )
 end
 
 --[[ 
+   Compares the two trees.
+
+   Compares the contents of the two trees and returns a list of messages 
+   indicating the differences.
+]]
+function m.compare_trees( lhs, rhs, path )
+   local bMatch = true
+   local msgs = {}
+
+   local prefix
+   if( path ) then
+      prefix = path..fs_delim
+   else
+      prefix = ''
+   end
+
+   -- First, check all entries in lhs. If there is a corresponding
+   -- entry in rhs, compare the entries.
+   for k,v in pairs(lhs) do
+
+      if( rhs[ k ] ) then
+	 local bDiffer = (rhs[ k ].mode ~= v.mode)
+	 bDiffer = bDiffer or (rhs[ k ].nlink ~= v.nlink)
+	 bDiffer = bDiffer or (rhs[ k ].symbolic_link ~= v.symbolic_link)
+
+	 if( bDiffer == nil ) then
+	    if v.mode == "file" then
+	       bDiffer = bDiffer or (rhs[ k ].contents ~= v.contents)
+	    elseif v.mode == "directory" then
+	       local lclMatch, lclMsgs = m.compare_tree( v.contents, rhs[k].contents )
+	       table.move( lclMsgs, 1, #lclMsgs, #msgs + 1, msgs )
+	       bMatch = bMatch and lclMatch
+	    end
+	 end
+
+	 if bDiffer then
+	    msgs[ #msgs + 1 ] = prefix..k..' differs between lhs and rhs'
+	    bMatch = false
+	 end
+		
+      else
+	 msgs[ #msgs + 1 ] = 'Only in lhs: '..prefix..k
+	 bMatch = false
+      end
+   end
+
+   -- Check all entries in rhs. Report any entries that are not in lhs.
+   -- Assume all matching entries have already been compared.
+   for k,v in pairs(rhs) do
+      if( lhs[ k ] == nil ) then
+	 msgs[ #msgs + 1 ] = 'Only in rhs: '..prefix..k
+	 bMatch = false
+      end
+   end
+
+   return bMatch, msgs
+end
+
+--[[ 
    Displays the contents of the specified table representing a directory 
    tree.
 
