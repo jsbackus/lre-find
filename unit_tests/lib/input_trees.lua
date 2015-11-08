@@ -87,6 +87,8 @@ end
 function m.tree2()
 
    local retval = { }
+   retval['readme.txt'] = { mode = "file", nlink = 1, contents = "some readme",
+			    symbolic_link = false }
    retval.alpha = { mode = "directory", nlink = 2, contents = {},
 		    symbolic_link = false }
    retval.alpha.contents["t00_check_send.txt"] = { mode = "file",

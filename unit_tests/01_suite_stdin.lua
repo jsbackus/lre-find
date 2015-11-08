@@ -177,6 +177,7 @@ function m.test_leaf_dirs()
       "tests/src/x86/t04_check_noop.txt",
       "tests/src/wood/pine",
       "tests/src/x86/t05_check_rcv.txt",
+      "tests/src/readme.txt",
    }
 
    local tree_root = 'src'
@@ -214,6 +215,7 @@ function m.test_leaf_dirs_files_only()
       "tests/src/x86/x86_64/t10_check_rcv.txt",
       "tests/src/x86/t04_check_noop.txt",
       "tests/src/x86/t05_check_rcv.txt",
+      "tests/src/readme.txt",
    }
 
    local tree_root = 'src'
