@@ -46,7 +46,7 @@ function m.test_del_tree()
    test.make_tree( tree, tree_root )
 
    test.del_tree( tree_root )
-   local check = pcall( test.read_tree, tree_root )
+   local check = lfs.attributes( tree_root )
    assert( check == nil, "Was able to read from "..tree_root )
    
    return true
@@ -59,6 +59,7 @@ function m.test_tree1()
    test.make_tree( tree, tree_root )
 
    local check = test.read_tree( tree_root )
+   test.del_tree( tree_root )
    local bOk, msgs = test.compare_trees( tree, check )
    msgs = table.concat(msgs, '\n')
    assert( bOk, msgs )
