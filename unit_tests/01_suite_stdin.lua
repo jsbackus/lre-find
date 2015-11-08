@@ -121,4 +121,43 @@ function m.test_normal_heirarchy()
    return true
 end
 
+function m.test_normal_heirarchy_with_missing()
+   local exp_val = {
+      "tests/send/t00_check_alpha.txt",
+      "tests/noop/t02_check_alpha.txt",
+      "tests/noop/t04_check_i686.txt",
+      "tests/rcv/t05_check_i686.txt",
+      "tests/rcv/t06_check_arm.txt",
+      "tests/send/t07_check_arm.txt",
+      "tests/noop/t08_check_arm.txt",
+   }
+
+   local tree_root = 'src'
+   local tree = trees.tree1()
+
+   m.create_test_file( tree, tree_root )
+   test.make_tree( tree, tree_root )
+
+   -- Remove a few files
+   assert( os.remove( table.concat( {'src', 'alpha', 't01_check_rcv.txt'},
+				    fs_delim ) ) )
+
+   assert( os.remove( table.concat( {'src', 'i686', 't03_check_send.txt'},
+				    fs_delim ) ) )
+
+   test.set_default_exec_path( "" )
+   
+   local code, lines = test.get_cmd_output( '/bin/sh '..test_script,
+					    { '"/(%w+)/(t%d+)_check_(%w+).txt"',
+					      '--', '-p',
+					      'tests/%3/%2_check_%1.txt' } )
+   
+   -- Go ahead and remove the tree before checking output
+   test.del_tree( tree_root )
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
 return test.execute_suite( m )
