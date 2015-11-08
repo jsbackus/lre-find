@@ -160,4 +160,109 @@ function m.test_normal_heirarchy_with_missing()
    return true
 end
 
+function m.test_leaf_dirs()
+   local exp_val = {
+      "tests/src/arm/t06_check_rcv.txt",
+      "tests/src/alpha/t01_check_rcv.txt",
+      "tests/src/arm/t08_check_noop.txt",
+      "tests/src/x86/x86_64/t09_check_noop.txt",
+      "tests/src/x86/x86_64/t11_check_send.txt",
+      "tests/src/arm/t07_check_send.txt",
+      "tests/src/alpha/t00_check_send.txt",
+      "tests/src/x86/t03_check_send.txt",
+      "tests/src/alpha/t02_check_noop.txt",
+      "tests/src/potato",
+      "tests/src/wood/oak",
+      "tests/src/x86/x86_64/t10_check_rcv.txt",
+      "tests/src/x86/t04_check_noop.txt",
+      "tests/src/wood/pine",
+      "tests/src/x86/t05_check_rcv.txt",
+   }
+
+   local tree_root = 'src'
+   local tree = trees.tree2()
+
+   m.create_test_file( tree, tree_root )
+   test.make_tree( tree, tree_root )
+
+   test.set_default_exec_path( "" )
+   
+   local code, lines = test.get_cmd_output( '/bin/sh '..test_script,
+					    { '"^(%w+)/(.*)"',
+					      '--', '-p',
+					      'tests/%1/%2' } )
+   
+   -- Go ahead and remove the tree before checking output
+   test.del_tree( tree_root )
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_leaf_dirs_files_only()
+   local exp_val = {
+      "tests/src/arm/t06_check_rcv.txt",
+      "tests/src/alpha/t01_check_rcv.txt",
+      "tests/src/arm/t08_check_noop.txt",
+      "tests/src/x86/x86_64/t09_check_noop.txt",
+      "tests/src/x86/x86_64/t11_check_send.txt",
+      "tests/src/arm/t07_check_send.txt",
+      "tests/src/alpha/t00_check_send.txt",
+      "tests/src/x86/t03_check_send.txt",
+      "tests/src/alpha/t02_check_noop.txt",
+      "tests/src/x86/x86_64/t10_check_rcv.txt",
+      "tests/src/x86/t04_check_noop.txt",
+      "tests/src/x86/t05_check_rcv.txt",
+   }
+
+   local tree_root = 'src'
+   local tree = trees.tree2()
+
+   m.create_test_file( tree, tree_root )
+   test.make_tree( tree, tree_root )
+
+   test.set_default_exec_path( "" )
+   
+   local code, lines = test.get_cmd_output( '/bin/sh '..test_script,
+					    { '"^(%w+)/(.*)"',
+					      '--', '-f',
+					      '-p', 'tests/%1/%2' } )
+   
+   -- Go ahead and remove the tree before checking output
+   test.del_tree( tree_root )
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_leaf_dirs_dirs_only()
+   local exp_val = {
+      "tests/src/potato",
+      "tests/src/wood/oak",
+      "tests/src/wood/pine",
+   }
+
+   local tree_root = 'src'
+   local tree = trees.tree2()
+
+   m.create_test_file( tree, tree_root )
+   test.make_tree( tree, tree_root )
+
+   test.set_default_exec_path( "" )
+   
+   local code, lines = test.get_cmd_output( '/bin/sh '..test_script,
+					    { '"^(%w+)/(.*)"',
+					      '--', '-d',
+					      '-p', 'tests/%1/%2' } )
+   
+   -- Go ahead and remove the tree before checking output
+   test.del_tree( tree_root )
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
 return test.execute_suite( m )
