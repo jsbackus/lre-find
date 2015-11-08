@@ -150,8 +150,31 @@ end
    Crawls the specified directory tree, removing each item in turn.
 ]]
 function m.del_tree( path )
-   -- TODO
-   print("del_tree not implemented!")
+   local attrs = lfs.attributes( path )
+
+   if( attrs == nil ) then
+      return
+   end
+
+   -- First, make sure we're dealing with a directory. If so, clean it out
+   -- then delete it. Otherwise, just remove the specified path.
+   if( attrs.mode == 'directory' ) then
+      for entry in lfs.dir( path ) do
+	 if( entry ~= '.' and entry ~= '..' ) then
+	    local entry_path = path..fs_delim..entry
+	    attrs = lfs.attributes( entry_path )
+	    
+	    if( attrs.mode == 'directory' ) then
+	       m.del_tree( entry_path )
+	    else
+	       assert( os.remove( entry_path ) )
+	    end
+	 end
+      end
+      assert( os.remove( path ) )
+   else
+      assert( os.remove( path ) )
+   end
 end
 
 --[[
