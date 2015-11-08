@@ -67,6 +67,21 @@ function m.test_tree1()
    return true
 end
 
+function m.test_tree2()
+
+   local tree_root = 'tree2'
+   local tree = trees.tree2()
+   test.make_tree( tree, tree_root )
+
+   local check = test.read_tree( tree_root )
+   test.del_tree( tree_root )
+   local bOk, msgs = test.compare_trees( tree, check )
+   msgs = table.concat(msgs, '\n')
+   assert( bOk, msgs )
+   
+   return true
+end
+
 -- function m.test_ex()
 --    print("")
 --    local my_tree = test.read_tree( 'src' )

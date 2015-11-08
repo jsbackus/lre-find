@@ -81,4 +81,85 @@ function m.tree1()
    return retval
 end
 
+--[[
+   An unbalanced tree of files/directories that includes empty directories.
+]]
+function m.tree2()
+
+   local retval = { }
+   retval.alpha = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
+   retval.alpha.contents["t00_check_send.txt"] = { mode = "file",
+						   nlink = 1,
+						   symbolic_link = false,
+						   contents = "alpha send" }
+   retval.alpha.contents["t01_check_rcv.txt"] = { mode = "file",
+						  nlink = 1,
+						   symbolic_link = false,
+						  contents = "alpha receive" }
+   retval.alpha.contents["t02_check_noop.txt"] = { mode = "file",
+						   nlink = 1,
+						   symbolic_link = false,
+						   contents = "alpha no-op" }
+   
+   retval.x86 = { mode = "directory", nlink = 3, contents = {},
+		  symbolic_link = false }
+   retval.x86.contents["t03_check_send.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "i686 send" }
+   retval.x86.contents["t04_check_noop.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "i686 no-op" }
+   retval.x86.contents["t05_check_rcv.txt"] = { mode = "file",
+						nlink = 1,
+						symbolic_link = false,
+						contents = "i686 receive" }
+   
+   retval.x86.contents.x86_64 = { mode = "directory", nlink = 2,
+				  contents = {}, symbolic_link = false }
+   retval.x86.contents.x86_64.contents["t09_check_noop.txt"] = {
+      mode = "file",
+      nlink = 1,
+      symbolic_link = false,
+      contents = "x86_64 no-op" }
+   retval.x86.contents.x86_64.contents["t10_check_rcv.txt"] = {
+      mode = "file",
+      nlink = 1,
+      symbolic_link = false,
+      contents = "x86_64 receive" }
+   retval.x86.contents.x86_64.contents["t11_check_send.txt"] = {
+      mode = "file",
+      nlink = 1,
+      symbolic_link = false,
+      contents = "x86_64 send" }
+   
+   retval.arm = { mode = "directory", nlink = 2, contents = {},
+		  symbolic_link = false }
+   retval.arm.contents["t06_check_rcv.txt"] = { mode = "file",
+						nlink = 1,
+						symbolic_link = false,
+						contents = "arm receive" }
+   retval.arm.contents["t07_check_send.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "arm send" }
+   retval.arm.contents["t08_check_noop.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "arm no-op" }
+   
+   retval.potato = { mode = "directory", nlink = 2, contents = {},
+		     symbolic_link = false }
+
+   retval.wood = { mode = "directory", nlink = 4, contents = {},
+		   symbolic_link = false }
+   retval.wood.contents.oak = { mode = "directory", nlink = 4, contents = {},
+				symbolic_link = false }
+   retval.wood.contents.pine = { mode = "directory", nlink = 4, contents = {},
+				 symbolic_link = false }
+   return retval
+end
+
 return m
