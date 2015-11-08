@@ -351,15 +351,15 @@ local function handle_dir(dir_names)
          local attrs = lfs.attributes(pathname)
 
 	 -- Share our result
-	 coroutine.yield( pathname )
+	 if( dir_obj ~= '.' and dir_obj ~= '..' ) then
+	    coroutine.yield( pathname )
 
-	 if( attrs.mode == "directory" and
-	     dir_obj ~= '.' and dir_obj ~= '..' ) then
-	    
-	    -- Append to end of list if recursive mode enabled.
-	    if( settings.recursive ) then
-	       dir_names[ list_end ] = pathname
-	       list_end = list_end + 1
+	    if( attrs.mode == "directory" ) then
+	       -- Append to end of list if recursive mode enabled.
+	       if( settings.recursive ) then
+		  dir_names[ list_end ] = pathname
+		  list_end = list_end + 1
+	       end
 	    end
 	 end
       end
@@ -645,7 +645,7 @@ options["-p"] = {
 	 dest = "%0"
       end
       actions[ #actions + 1 ] = { action = fn_modes.print, dest = dest,
-				  name = print }
+				  name = "print" }
    end
 }
 
