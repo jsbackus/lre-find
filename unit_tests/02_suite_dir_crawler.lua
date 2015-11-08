@@ -35,19 +35,205 @@ package.path = table.concat(t, fs_delim)..package.path
 
 local lfs = require "lfs"
 local test = require "lib/testlib"
+local trees = require "lib/input_trees"
+
+local test_root = 'src'
+local test_script = 'lre-find'
 
 local m = {}
 
-function m.test_ex1()
-   print("")
-   local my_tree = test.read_tree( 'src' )
-   test.dump_tree( my_tree )
+function m.cleanup()
+   test.del_tree( test_root )
+end
 
-   my_tree.a.contents.b.contents["wozzy.txt"].mode = 'link'
-   my_tree.a.contents.b.contents["wozzy.txt"].contents = '../pssh.txt'   
-   test.make_tree( my_tree, 'dest' )
-   my_tree = test.read_tree( 'dest' )
-   test.dump_tree( my_tree )
+-- Begin tests
+function m.test_normal_heirarchy()
+   local exp_val = {
+      "tests/send/t00_check_alpha.txt",
+      "tests/rcv/t01_check_alpha.txt",
+      "tests/noop/t02_check_alpha.txt",
+      "tests/send/t03_check_i686.txt",
+      "tests/noop/t04_check_i686.txt",
+      "tests/rcv/t05_check_i686.txt",
+      "tests/rcv/t06_check_arm.txt",
+      "tests/send/t07_check_arm.txt",
+      "tests/noop/t08_check_arm.txt",
+   }
+
+   local tree_root = 'src'
+   local tree = trees.tree1()
+
+   test.make_tree( tree, tree_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"/(%w+)/(t%d+)_check_(%w+).txt"',
+					      '-P', test_root, '-r',
+					      '-p', '"tests/%3/%2_check_%1.txt"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_normal_heirarchy_with_missing()
+   local exp_val = {
+      "tests/send/t00_check_alpha.txt",
+      "tests/noop/t02_check_alpha.txt",
+      "tests/noop/t04_check_i686.txt",
+      "tests/rcv/t05_check_i686.txt",
+      "tests/rcv/t06_check_arm.txt",
+      "tests/send/t07_check_arm.txt",
+      "tests/noop/t08_check_arm.txt",
+   }
+
+   local tree = trees.tree1()
+
+   test.make_tree( tree, test_root )
+
+   -- Remove a few files
+   assert( os.remove( table.concat( {'src', 'alpha', 't01_check_rcv.txt'},
+				    fs_delim ) ) )
+
+   assert( os.remove( table.concat( {'src', 'i686', 't03_check_send.txt'},
+				    fs_delim ) ) )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"/(%w+)/(t%d+)_check_(%w+).txt"',
+					      '-P', test_root, '-r',
+					      '-p', '"tests/%3/%2_check_%1.txt"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_leaf_dirs()
+   local exp_val = {
+      "tests/src/arm",
+      "tests/src/arm/t06_check_rcv.txt",
+      "tests/src/alpha",
+      "tests/src/alpha/t01_check_rcv.txt",
+      "tests/src/arm/t08_check_noop.txt",
+      "tests/src/x86",
+      "tests/src/x86/x86_64",
+      "tests/src/x86/x86_64/t09_check_noop.txt",
+      "tests/src/x86/x86_64/t11_check_send.txt",
+      "tests/src/arm/t07_check_send.txt",
+      "tests/src/alpha/t00_check_send.txt",
+      "tests/src/x86/t03_check_send.txt",
+      "tests/src/alpha/t02_check_noop.txt",
+      "tests/src/potato",
+      "tests/src/wood",
+      "tests/src/wood/oak",
+      "tests/src/x86/x86_64/t10_check_rcv.txt",
+      "tests/src/x86/t04_check_noop.txt",
+      "tests/src/wood/pine",
+      "tests/src/x86/t05_check_rcv.txt",
+      "tests/src/readme.txt",
+   }
+
+   local test_root = 'src'
+   local tree = trees.tree2()
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"^(%w+)/(.*)"',
+					      '-P', test_root, '-r', 
+					      '-p', '"tests/%1/%2"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_leaf_dirs_files_only()
+   local exp_val = {
+      "tests/src/arm/t06_check_rcv.txt",
+      "tests/src/alpha/t01_check_rcv.txt",
+      "tests/src/arm/t08_check_noop.txt",
+      "tests/src/x86/x86_64/t09_check_noop.txt",
+      "tests/src/x86/x86_64/t11_check_send.txt",
+      "tests/src/arm/t07_check_send.txt",
+      "tests/src/alpha/t00_check_send.txt",
+      "tests/src/x86/t03_check_send.txt",
+      "tests/src/alpha/t02_check_noop.txt",
+      "tests/src/x86/x86_64/t10_check_rcv.txt",
+      "tests/src/x86/t04_check_noop.txt",
+      "tests/src/x86/t05_check_rcv.txt",
+      "tests/src/readme.txt",
+   }
+
+   local test_root = 'src'
+   local tree = trees.tree2()
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { test_root, '"^(%w+)/(.*)"',
+					      '-P', test_root, '-f', '-r',
+					      '-p', '"tests/%1/%2"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_leaf_dirs_dirs_only()
+   local exp_val = {
+      "tests/src/arm",
+      "tests/src/alpha",
+      "tests/src/x86",
+      "tests/src/x86/x86_64",
+      "tests/src/potato",
+      "tests/src/wood",
+      "tests/src/wood/oak",
+      "tests/src/wood/pine",
+   }
+
+   local test_root = 'src'
+   local tree = trees.tree2()
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { test_root, '"^(%w+)/(.*)"',
+					      '-P', test_root, '-d', '-r', 
+					      '-p', '"tests/%1/%2"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
+function m.test_nonrecursive()
+   local exp_val = {
+      "tests/src/arm",
+      "tests/src/alpha",
+      "tests/src/x86",
+      "tests/src/potato",
+      "tests/src/wood",
+      "tests/src/readme.txt",
+   }
+
+   local test_root = 'src'
+   local tree = trees.tree2()
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"^(%w+)/(.*)"',
+					      '-P', test_root,
+					      '-p', '"tests/%1/%2"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
    return true
 end
 
