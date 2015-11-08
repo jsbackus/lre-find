@@ -809,7 +809,7 @@ for pathname in searcher do
       end
       
       -- Call appropriate handler if we have a match
-      if( newname ~= nil ) then
+      if( attrs ~= nil and newname ~= nil ) then
 	 if( attrs.mode == "directory" and settings.files_only == nil ) then
 	    mode.action.dir_action( pathname, newname )
 	 elseif( attrs.mode == "file" and settings.dirs_only == nil ) then
