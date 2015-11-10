@@ -237,4 +237,45 @@ function m.test_nonrecursive()
    return true
 end
 
+function m.test_absolute()
+   local exp_val = {
+      lfs.join(lfs.currentdir(), "tests","src","arm"),
+      lfs.join(lfs.currentdir(),"tests","src","arm","t06_check_rcv.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","alpha"),
+      lfs.join(lfs.currentdir(),"tests","src","alpha","t01_check_rcv.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","arm","t08_check_noop.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","x86"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","x86_64"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","x86_64","t09_check_noop.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","x86_64","t11_check_send.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","arm","t07_check_send.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","alpha","t00_check_send.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","t03_check_send.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","alpha","t02_check_noop.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","potato"),
+      lfs.join(lfs.currentdir(),"tests","src","wood"),
+      lfs.join(lfs.currentdir(),"tests","src","wood","oak"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","x86_64","t10_check_rcv.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","t04_check_noop.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","wood","pine"),
+      lfs.join(lfs.currentdir(),"tests","src","x86","t05_check_rcv.txt"),
+      lfs.join(lfs.currentdir(),"tests","src","readme.txt"),
+   }
+
+   local test_root = 'src'
+   local tree = trees.tree2()
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"(src)/(.*)"',
+					      '-P', test_root, '-r', '-a',
+					      '-p', '"tests/%1/%2"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
 return test.execute_suite( m )
