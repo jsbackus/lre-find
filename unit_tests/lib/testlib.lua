@@ -493,7 +493,13 @@ end
 ]]
 if( package.loaded.lfs.join == nil ) then
    package.loaded.lfs.join = function(...)
-      return table.concat({...}, fs_delim)
+      local t = {...}
+      local delim = package.config:sub(1,1)
+      if( type(t[1]) == "table" ) then
+	 return table.concat(t[1], delim)
+      else
+	 return table.concat(t, delim)
+      end
    end
 end
 
