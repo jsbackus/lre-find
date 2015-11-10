@@ -488,4 +488,13 @@ function m.compare_unordered_stdout( expected, actual )
    return retval
 end
 
+--[[
+   Monkey-patch in join to lfs if it doesn't already exist.
+]]
+if( package.loaded.lfs.join == nil ) then
+   package.loaded.lfs.join = function(...)
+      return table.concat({...}, fs_delim)
+   end
+end
+
 return m
