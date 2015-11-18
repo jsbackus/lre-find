@@ -315,4 +315,65 @@ function m.test_default_root()
    return true
 end
 
+function m.test_multiple_roots()
+   local exp_val = {
+      "tests/alpha/t01_check_rcv.txt",
+      "tests/arm",
+      "tests/i686/t05_check_rcv.txt",
+      "tests/arm/t08_check_noop.txt",
+      "tests/alpha",
+      "tests/i686",
+      "tests/alpha/t02_check_noop.txt",
+      "tests/alpha/t00_check_send.txt",
+      "tests/arm/t07_check_send.txt",
+      "tests/i686/t03_check_send.txt",
+      "tests/arm/t06_check_rcv.txt",
+      "tests/i686/t04_check_noop.txt",
+      "tests/arm",
+      "tests/arm/t06_check_rcv.txt",
+      "tests/alpha",
+      "tests/alpha/t01_check_rcv.txt",
+      "tests/arm/t08_check_noop.txt",
+      "tests/x86",
+      "tests/x86/x86_64",
+      "tests/x86/x86_64/t09_check_noop.txt",
+      "tests/x86/x86_64/t11_check_send.txt",
+      "tests/arm/t07_check_send.txt",
+      "tests/alpha/t00_check_send.txt",
+      "tests/x86/t03_check_send.txt",
+      "tests/alpha/t02_check_noop.txt",
+      "tests/potato",
+      "tests/wood",
+      "tests/wood/oak",
+      "tests/x86/x86_64/t10_check_rcv.txt",
+      "tests/x86/t04_check_noop.txt",
+      "tests/wood/pine",
+      "tests/x86/t05_check_rcv.txt",
+      "tests/readme.txt",
+   }
+
+   local tree_root1 = 'src1'
+   local tree1 = trees.tree1()
+
+   test.make_tree( tree1, tree_root1 )
+
+   local tree_root2 = 'src2'
+   local tree2 = trees.tree2()
+
+   test.make_tree( tree2, tree_root2 )
+   
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"^%w+/(.*)"',
+					      '-P', tree_root1,
+					      '-P', tree_root2, '-r',
+					      '-p', '"tests/%1"' } )
+   
+   test.del_tree( tree_root1 )
+   test.del_tree( tree_root2 )
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
 return test.execute_suite( m )
