@@ -121,6 +121,9 @@ end
 ]]
 
 function m.set_default_exec_path( path )
+   if( path == nil ) then
+      path = '..'..fs_delim
+   end
    default_exec_path = path
 end
 
