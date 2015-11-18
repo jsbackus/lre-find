@@ -278,4 +278,41 @@ function m.test_absolute()
    return true
 end
 
+function m.test_default_root()
+   local exp_val = {
+      "tests/send/t00_check_alpha.txt",
+      "tests/rcv/t01_check_alpha.txt",
+      "tests/noop/t02_check_alpha.txt",
+      "tests/send/t03_check_i686.txt",
+      "tests/noop/t04_check_i686.txt",
+      "tests/rcv/t05_check_i686.txt",
+      "tests/rcv/t06_check_arm.txt",
+      "tests/send/t07_check_arm.txt",
+      "tests/noop/t08_check_arm.txt",
+   }
+
+   local tree_root = 'src'
+   local tree = trees.tree1()
+
+   test.make_tree( tree, tree_root )
+
+   -- Clear default exec path
+   test.set_default_exec_path( '' )
+
+   local scr = lfs.join( '..', '..', test_script )
+
+   local code, lines = test.get_cmd_output( 'cd '..test_root..' && '..scr,
+					    { '"(%w+)/(t%d+)_check_(%w+).txt"',
+					      '-r',
+					      '-p', '"tests/%3/%2_check_%1.txt"' } )
+
+   -- Restore default exec path
+   test.set_default_exec_path( )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
+   return true
+end
+
 return test.execute_suite( m )
