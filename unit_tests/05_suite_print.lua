@@ -35,11 +35,43 @@ package.path = table.concat(t, fs_delim)..package.path
 
 local lfs = require "lfs"
 local test = require "lib/testlib"
+local trees = require "lib/input_trees"
+
+local test_root = 'src'
+local test_script = 'lre-find'
 
 local m = {}
 
-function m.test_ex1()
-   assert( false, "not implemented" )
+function m.cleanup()
+   test.del_tree( test_root )
+end
+
+-- Begin tests
+function m.test_print()
+   local exp_val = {
+      "03: check send i686",
+      "07: check send arm",
+      "02: check noop alpha",
+      "06: check rcv arm",
+      "08: check noop arm",
+      "04: check noop i686",
+      "01: check rcv alpha",
+      "05: check rcv i686",
+      "00: check send alpha",
+   }
+
+   local tree = trees.tree1()
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"/(%w+)/t(%d+)_(%w+)_(%w+).txt"',
+					      '-P', test_root, '-r',
+					      '-p', '"%2: %3 %4 %1"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+   assert( test.compare_unordered_stdout( exp_val, lines ) )
+
    return true
 end
 
