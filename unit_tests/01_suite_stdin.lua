@@ -84,6 +84,7 @@ end
 function m.cleanup()
    assert( os.remove( test_file ) )
    assert( os.remove( test_script ) )
+   test.set_default_exec_path()
 end
 
 -- Begin tests

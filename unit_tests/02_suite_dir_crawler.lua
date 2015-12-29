@@ -42,9 +42,6 @@ local test_script = 'lre-find'
 
 local m = {}
 
-function m.setup()
-   test.set_default_exec_path()
-end
 function m.cleanup()
    test.del_tree( test_root )
 end
