@@ -43,4 +43,9 @@ function m.test_ex1()
    return true
 end
 
+function m.test_pseudo_pipe()
+   assert( false, "not implemented" )
+   return true
+end
+
 return test.execute_suite( m )
