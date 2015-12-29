@@ -72,7 +72,7 @@ function m.execute_suite( suite_fns )
 	 -- Run setup function, if it exists
 	 if( suite_fns.setup ) then
 	    ok, msg = pcall( suite_fns.setup )
-	    if( ok ~= nil ) then
+	    if( ok == false ) then
 	       m.write( "Setup failed:\n" )
 	       m.write( msg )
 	    end
