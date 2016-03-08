@@ -268,9 +268,9 @@ function m.test_absolute()
    test.make_tree( tree, test_root )
 
    local code, lines = test.get_cmd_output( test_script,
-					    { '"(src)/(.*)"',
+					    { '"(.*)/(src)/(.*)"',
 					      '-P', test_root, '-r', '-a',
-					      '-p', '"tests/%1/%2"' } )
+					      '-p', '"%1/tests/%2/%3"' } )
    
    assert( code == 0, "Invalid return code: " .. tostring(code) )
    assert( test.compare_unordered_stdout( exp_val, lines ) )
