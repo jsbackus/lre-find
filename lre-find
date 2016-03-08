@@ -63,6 +63,50 @@ do
    end
 end
 
+--[[
+   Monkey-patch in join to lfs if it doesn't already exist.
+]]
+if( package.loaded.lfs.join == nil ) then
+   package.loaded.lfs.join = function(...)
+      local t = {...}
+      local delim = package.config:sub(1,1)
+      if( type(t[1]) == "table" ) then
+	 return table.concat(t[1], delim)
+      else
+	 return table.concat(t, delim)
+      end
+   end
+end
+
+--[[
+   Monkey-patch in normpath to lfs if it doesn't already exist.
+]]
+if( package.loaded.lfs.normpath == nil ) then
+   package.loaded.lfs.normpath = function( path )
+      local m
+      if( fs_delim == "\\" ) then
+	 m = "[^/\\]+"
+      else
+	 m = "[^/]+"
+      end
+      
+      local elms = { "" }
+      local idx = 2
+      for i in path:gmatch(m) do
+	 if( i == ".." ) then
+	    if( 2 < idx ) then
+	       idx = idx - 1
+	    end
+	 elseif( i ~= "." ) then
+	    elms[ idx ] = i
+	    idx = idx + 1
+	 end
+      end
+
+      return lfs.join( elms )
+   end
+end
+
 -- Create a table to handle different options for how we are started
 -- Override __index to create a default case.
 local run_modes = {}
@@ -345,7 +389,7 @@ local function handle_dir(dir_names)
 
 	 local pathname = dir_obj
 	 if( dir_name ~= '.' ) then
-	    pathname = dir_name.."/"..pathname
+	    pathname = dir_name..fs_delim..pathname
 	 end
 
          local attrs = lfs.attributes(pathname)
@@ -796,8 +840,12 @@ end
 
 -- Process the output of the iterator
 for pathname in searcher do
+   if( settings.absolute ) then
+      pathname = lfs.normpath( lfs.currentdir()..fs_delim..pathname )
+   end
+
    local attrs = lfs.attributes(pathname);
-   
+
    -- Attempt to match against SRC
    local elements = match_pathname( pathname )
    for _, mode in ipairs( actions ) do
