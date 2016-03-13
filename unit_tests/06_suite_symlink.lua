@@ -73,7 +73,7 @@ function m.test_flat()
 	    -- path
 	    local newname = pathname:gsub( ".*"..match, pat )
 	    if( newname ~= pathname ) then
-	       exp_tree[ newname ] = { record = { symlink = true, contents = pathname } }
+	       exp_tree[ newname ] = { symbolic_link = true, contents = pathname } 
 	    end
 	 end
       end
@@ -95,9 +95,6 @@ lfs.mkdir( targ_root )
    assert( code == 0, "Invalid return code: " .. tostring(code) )
 
    local check = test.read_tree( targ_root )
-test.dump_tree( exp_tree)
-print( "Check>>")   
-test.dump_tree( check )
    
    local bOk, msgs = test.compare_trees( exp_tree, check )
    msgs = table.concat(msgs, '\n')
