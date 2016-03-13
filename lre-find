@@ -420,7 +420,7 @@ local function handle_dir(dir_names)
          local attrs = lfs.attributes(pathname)
 
 	 -- Share our result
-	 if( dir_obj ~= '.' and dir_obj ~= '..' ) then
+	 if( attrs ~= nil and dir_obj ~= '.' and dir_obj ~= '..' ) then
 	    coroutine.yield( pathname )
 
 	    if( attrs.mode == "directory" ) then
