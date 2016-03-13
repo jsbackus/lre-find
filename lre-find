@@ -418,7 +418,7 @@ local function handle_dir(dir_names)
 
 	 local pathname = dir_obj
 	 if( dir_name ~= '.' ) then
-	    pathname = dir_name..fs_delim..pathname
+	    pathname = lfs.join( dir_name, pathname )
 	 end
 
          local attrs = lfs.attributes(pathname)
