@@ -202,8 +202,10 @@ function m.read_tree( filepath )
 	    local attrs = lfs.attributes( entry_path )
 	    record.symbolic_link =
 	       ( lfs.symlinkattributes( entry_path, 'mode' ) == "link" )
-	    record.nlink = attrs.nlink
-	    record.mode = attrs.mode
+	    if( attrs ) then
+	       record.nlink = attrs.nlink
+	       record.mode = attrs.mode
+	    end
 
 	    if( record.symbolic_link ) then
 	       -- Set contents to the link location. Requires that readlink
