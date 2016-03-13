@@ -167,7 +167,7 @@ function m.del_tree( path )
 	    local entry_path = path..fs_delim..entry
 	    attrs = lfs.attributes( entry_path )
 	    
-	    if( attrs.mode == 'directory' ) then
+	    if( attrs and attrs.mode == 'directory' ) then
 	       m.del_tree( entry_path )
 	    else
 	       assert( os.remove( entry_path ) )
