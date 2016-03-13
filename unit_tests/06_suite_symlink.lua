@@ -85,8 +85,7 @@ function m.test_flat()
    end
 
    test.make_tree( tree, test_root )
--- Make target directory. Temporary!
-lfs.mkdir( targ_root )   
+
    local code, lines = test.get_cmd_output( test_script,
 					    { '"'..match..'"',
 					      '-P', test_root, '-r',
