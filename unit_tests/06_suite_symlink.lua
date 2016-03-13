@@ -103,7 +103,73 @@ function m.test_flat()
 end
 
 function m.test_hierarchy()
-   assert( false, "not implemented" )
+   local tree = trees.tree1()
+
+   local match = "/([%w_]+)/t(%d+)_([%w_]+)_([%w_]+).txt"
+   local pat = "%2/%3/%4/%1.test"
+
+   local exp_tree = { }
+-- TODO
+   retval.alpha = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
+   retval.alpha.contents["t00_check_send.txt"] = { mode = "file",
+						   nlink = 1,
+						   symbolic_link = false,
+						   contents = "alpha send" }
+   retval.alpha.contents["t01_check_rcv.txt"] = { mode = "file",
+						  nlink = 1,
+						   symbolic_link = false,
+						  contents = "alpha receive" }
+   retval.alpha.contents["t02_check_noop.txt"] = { mode = "file",
+						   nlink = 1,
+						   symbolic_link = false,
+						   contents = "alpha no-op" }
+   
+   retval.i686 = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
+   retval.i686.contents["t03_check_send.txt"] = { mode = "file",
+						  nlink = 1,
+						  symbolic_link = false,
+						  contents = "i686 send" }
+   retval.i686.contents["t04_check_noop.txt"] = { mode = "file",
+						  nlink = 1,
+						  symbolic_link = false,
+						  contents = "i686 no-op" }
+   retval.i686.contents["t05_check_rcv.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "i686 receive" }
+   
+   retval.arm = { mode = "directory", nlink = 2, contents = {},
+		    symbolic_link = false }
+   retval.arm.contents["t06_check_rcv.txt"] = { mode = "file",
+						nlink = 1,
+						symbolic_link = false,
+						contents = "arm receive" }
+   retval.arm.contents["t07_check_send.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "arm send" }
+   retval.arm.contents["t08_check_noop.txt"] = { mode = "file",
+						 nlink = 1,
+						 symbolic_link = false,
+						 contents = "arm no-op" }
+
+   test.make_tree( tree, test_root )
+
+   local code, lines = test.get_cmd_output( test_script,
+					    { '"'..match..'"',
+					      '-P', test_root, '-r',
+					      '-s', '"'..lfs.join(targ_root,pat)..'"' } )
+   
+   assert( code == 0, "Invalid return code: " .. tostring(code) )
+
+   local check = test.read_tree( targ_root )
+   
+   local bOk, msgs = test.compare_trees( exp_tree, check )
+   msgs = table.concat(msgs, '\n')
+   assert( bOk, msgs )
+
    return true
 end
 
