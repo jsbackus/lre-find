@@ -64,6 +64,20 @@ do
 end
 
 --[[
+   Monkey-patch in isabs to lfs if it doesn't already exist.
+]]
+if( package.loaded.lfs.isabs == nil ) then
+   package.loaded.lfs.isabs = function( path )
+      local delim = package.config:sub(1,1)
+      if( delim == "/" ) then
+	 return ( path.sub(1,1) == delim )
+      else
+	 return ( ( path.sub(1,1) == delim ) or ( path.match( "^%a:\\" ) ) )
+      end
+   end
+end
+
+--[[
    Monkey-patch in join to lfs if it doesn't already exist.
 ]]
 if( package.loaded.lfs.join == nil ) then
@@ -84,10 +98,11 @@ end
 if( package.loaded.lfs.normpath == nil ) then
    package.loaded.lfs.normpath = function( path )
       local m
-      if( fs_delim == "\\" ) then
-	 m = "[^/\\]+"
-      else
+      local delim = package.config:sub(1,1)
+      if( delim == "/" ) then
 	 m = "[^/]+"
+      else
+	 m = "[^/\\]+"
       end
       
       local elms = { "" }
@@ -104,6 +119,20 @@ if( package.loaded.lfs.normpath == nil ) then
       end
 
       return lfs.join( elms )
+   end
+end
+
+--[[
+   Monkey-patch in abspath to lfs if it doesn't already exist.
+]]
+if( package.loaded.lfs.abspath == nil ) then
+   package.loaded.lfs.abspath = function( path )
+
+      if( not lfs.isabs( path ) ) then
+	 path = lfs.join( lfs.currentdir(), path )
+      end
+
+      return lfs.normpath( path )
    end
 end
 
@@ -841,7 +870,7 @@ end
 -- Process the output of the iterator
 for pathname in searcher do
    if( settings.absolute ) then
-      pathname = lfs.normpath( lfs.currentdir()..fs_delim..pathname )
+      pathname = lfs.abspath( pathname )
    end
 
    local attrs = lfs.attributes(pathname);
