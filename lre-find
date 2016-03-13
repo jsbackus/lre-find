@@ -234,10 +234,6 @@ end
 transform = default_transform
 
 local function link_item(src, dest)
-   if( cur_mode.symbolic and settings.absolute ) then
-      src = lfs.currentdir().."/"..src
-   end
-   
    local cmd = "ln"
    if( cur_mode.symbolic ) then
       cmd = cmd.." -s"
@@ -869,9 +865,6 @@ end
 
 -- Process the output of the iterator
 for pathname in searcher do
-   if( settings.absolute ) then
-      pathname = lfs.abspath( pathname )
-   end
 
    local attrs = lfs.attributes(pathname);
 
@@ -883,6 +876,12 @@ for pathname in searcher do
       local newname
       if elements then
 	 newname = transform( elements )
+      end
+
+      -- If we have a match and the user requested we use absolute paths, go
+      -- ahead and convert before passing of to the action handler.
+      if( settings.absolute ) then
+	 pathname = lfs.abspath( pathname )
       end
       
       -- Call appropriate handler if we have a match
